@@ -4,9 +4,24 @@ from .models import Category
 from .serializers import MenuItemSerializer
 from .serializers import CategorySerializer
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.renderers import TemplateHTMLRenderer
+from rest_framework.renderers import StaticHTMLRenderer
+from rest_framework.decorators import api_view, renderer_classes
+
+@api_view()
+@renderer_classes([StaticHTMLRenderer])
+def welcome(request):
+    data = '<html><body><h1>Welcome to Little Lemon API Project</h1></body></html>'
+    return Response(data)
+
+@api_view()
+@renderer_classes([TemplateHTMLRenderer])
+def menu(request):
+    items = MenuItem.objects.select_related('category').all()
+    serialized_item = MenuItemSerializer(items, many = True)
+    return Response({'data': serialized_item.data}, template_name = 'menu-items.html')
 
 @api_view(['GET', 'POST'])
 def menu_items(request):

@@ -58,7 +58,7 @@ ROOT_URLCONF = 'LittleLemon.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR/'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -135,5 +135,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_xml.renderers.XMLRenderer',
+        'rest_framework_csv.renderers.CSVRenderer',
+        'rest_framework_yaml.renderers.YAMLRenderer',
     ]
 }

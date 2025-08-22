@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import MenuItem
 from .models import Category
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,7 +20,8 @@ class MenuItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'price', 'price_after_tax', 'stock', 'category', 'category_id']
         
     def calculate_tax(self, product:MenuItem):
-        return product.price * Decimal(1.1)
+        price_with_tax = product.price * Decimal("1.1")
+        return price_with_tax.quantize(Decimal("0.01"), rounding = ROUND_HALF_UP)
 
 # class MenuItemSerializer(serializers.Serializer):
 #     id = serializers.IntegerField()
