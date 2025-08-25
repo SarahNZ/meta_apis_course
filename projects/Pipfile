@@ -10,6 +10,7 @@ django-debug-toolbar = "*"
 djangorestframework-xml = "*"
 djangorestframework-csv = "*"
 djangorestframework-yaml = "*"
+bleach = "*"
 
 [dev-packages]
 

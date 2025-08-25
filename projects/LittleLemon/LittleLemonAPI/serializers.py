@@ -4,6 +4,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from .models import MenuItem
 from .models import Category
 from decimal import Decimal, ROUND_HALF_UP
+import bleach
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,22 +22,25 @@ class MenuItemSerializer(serializers.ModelSerializer):
     )
     # price = serializers.DecimalField(max_digits = 6, decimal_places = 2, min_value = 2)
     
-    # def validate_price(self, value):
-    #     if value < 2:
-    #         raise serializers.ValidationError('Price should not be less than 2.0')
-    #     return value # Return value if it passes validation
+    def validate_title(self, value):
+        return bleach.clean(value)
     
-    # def validate_stock(self, value):
-    #     if value < 0:
-    #         raise serializers.ValidationError('Stock cannot be negative')
-    #     return value # Return value if it passes valication
-    
-    def validate(self, attrs):
-        if(attrs['price'] < 2):
+    def validate_price(self, value):
+        if value < 2:
             raise serializers.ValidationError('Price should not be less than 2.0')
-        if(attrs['inventory'] < 0):
+        return value # Return value if it passes validation
+    
+    def validate_stock(self, value):
+        if value < 0:
             raise serializers.ValidationError('Stock cannot be negative')
-        return super().validate(attrs)
+        return value # Return value if it passes valication
+    
+    # def validate(self, attrs):
+    #     if(attrs['price'] < 2):
+    #         raise serializers.ValidationError('Price should not be less than 2.0')
+    #     if(attrs['inventory'] < 0):
+    #         raise serializers.ValidationError('Stock cannot be negative')
+    #     return super().validate(attrs)
     
     class Meta:
         model = MenuItem
