@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.decorators import api_view, renderer_classes
+from django.core.paginator import Paginator, EmptyPage
 
 @api_view(['GET', 'POST'])
 def menu_items(request):
@@ -18,6 +19,8 @@ def menu_items(request):
         to_price = request.query_params.get('to_price')
         search = request.query_params.get('search')
         ordering = request.query_params.get('ordering')
+        perpage = request.query_params.get('perpage', default = 2)
+        page = request.query_params.get('page', default = 1)
         
         if category_name:
             items = items.filter(category__title__iexact = category_name)
@@ -31,6 +34,12 @@ def menu_items(request):
             # items = items.order_by(ordering)
             ordering_fields = ordering.split(",")
             items = items.order_by(*ordering_fields)
+            
+        paginator = Paginator(items, per_page = perpage)   
+        try:
+            items = paginator.page(number = page) 
+        except EmptyPage:
+            items = []
             
         serialized_item = MenuItemSerializer(items, many = True)
         return Response(serialized_item.data)
