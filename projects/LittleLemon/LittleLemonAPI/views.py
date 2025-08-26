@@ -10,6 +10,13 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.decorators import api_view, renderer_classes
 from django.core.paginator import Paginator, EmptyPage
+from rest_framework import viewsets
+
+class MenuItemsViewSet(viewsets.ModelViewSet):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+    ordering_fields = ['price', 'inventory']
+    search_fields = ['title', 'category__title'] # title field of related model, category
 
 @api_view(['GET', 'POST'])
 def menu_items(request):
