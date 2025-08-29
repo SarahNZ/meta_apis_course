@@ -11,6 +11,8 @@ from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.decorators import api_view, renderer_classes
 from django.core.paginator import Paginator, EmptyPage
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import permission_classes
 
 class MenuItemsViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.all()
@@ -89,4 +91,7 @@ def menu(request):
     serialized_item = MenuItemSerializer(items, many = True)
     return Response({'data': serialized_item.data}, template_name = 'menu-items.html')
 
-    
+@api_view()
+@permission_classes([IsAuthenticated])
+def secret(request):
+    return Response({"message": "Some secret message"})
