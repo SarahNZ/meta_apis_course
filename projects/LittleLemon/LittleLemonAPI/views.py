@@ -18,10 +18,18 @@ from rest_framework.throttling import UserRateThrottle
 from .throttles import TenCallsPerMinute
 
 class MenuItemsViewSet(viewsets.ModelViewSet):
+    # throttle_classes = [AnonRateThrottle, UserRateThrottle]
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     ordering_fields = ['price', 'inventory']
     search_fields = ['title', 'category__title'] # title field of related model, category
+    
+    def get_throttles(self):
+        if self.action == 'create':
+            throttle_classes = [TenCallsPerMinute]
+        else:
+            throttle_classes = []
+        return [throttle() for throttle in throttle_classes]
 
 @api_view(['GET', 'POST'])
 def menu_items(request):
