@@ -16,5 +16,6 @@ urlpatterns = [
     path('api-token-auth/', obtain_auth_token),
     path('manager-view/', views.manager_view),
     path('throttle-check/', views.throttle_check),
-    path('throttle-check-auth/', views.throttle_check_auth)
+    path('throttle-check-auth/', views.throttle_check_auth),
+    path('groups/managers/users/', views.managers),
 ]
