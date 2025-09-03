@@ -6,6 +6,12 @@ from .serializers import RatingSerializer
 class RatingsView(generics.ListCreateAPIView):
     queryset = Rating.objects.all()
     serializer_class = RatingSerializer
+    
+    def get_permissions(self):
+        if(self.request.method == 'GET'):
+            return []
+        
+        return [IsAuthenticated()]
 
 
         
