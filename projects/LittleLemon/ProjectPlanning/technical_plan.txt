@@ -1,0 +1,142 @@
+TECHNICAL PLAN
+
+# PROJECT & APP SET-UP ✅
+Create a project directory called “LittleLemon” ✅
+Inside this directory in the VS Code terminal, activate the virtual environment. E.g. `pipenv shell`  and install the pipenv dependencies `pipenv install` ✅
+cd to the new project directory and install Django. E.g. pipenv install django. Check Django is installed using pip show django ✅
+Activate the virtual environment (using pipenv shell) ✅
+Create Django project using django-admin startproject LittleLemon ✅
+Create Django API app, LittleLemonAPI and add to settings.py (using python manage.py startapp LittleLemonAPI) ✅
+Install DRF (using pipenv install djangorestframework) and add 'rest_framework' to the list of installed apps ✅
+Run migrations (using python manage.py makemigrations and migrate) to craete the db.sqlite3 db ✅
+Run the server and check you can browse to thelocalhost 8000 port -> Success rocket page should be displayed ✅
+
+# CREATE USERS & GROUPS - in progress
+- Create superuser (python manage.py createsuperuser) ✅
+    - sarah, sarah@littlelemon.com, dogcatcamelpig
+- Run server (python manage.py runserver) ✅
+- Browse to admin portal (http://localhost:8000/admin) ✅
+- Log in as superuser ✅
+- Create group - Manager ✅
+- Create group - Delivery Crew ✅
+- Assign users to relevant group. (Note: Users without a group are customers)
+    (Username is first name in lower case)
+    - Manager: Marcus
+    - Delivery Crew: Kaitlyn, Eva  
+    - Customers: Ren, Sage, Aroha
+
+# CREATE MODELS ✅
+Provided by Meta. Copy and paste directly to models.py ✅
+Save file and run migrations ✅
+
+# CREATE TEST DATA 
+I.e. Two records in each db table
+
+# ENDPOINTS -  - in progress
+## User registration and token generation endpoints
+See endpoints required in Notion: 
+
+## MENU-ITEMS ENDPOINTS
+/api/menu-items (GET, Role = Customer, delivery crew, lists all menu items, return a 200 ok code)
+/api/menu-items (POST, PUT, PATCH, DELETE, Role = customer, delivery crew)
+
+
+/api/users/{userId}/groups
+/api/users/{userId}/cart
+/api/users/{userId}/cart/menu-items
+/api/orders
+/api/orders/{orderId}
+/api/orders?status=delivered
+/api/orders/status=pending
+
+
+# CREATE VIEWS
+E.g.
+from django.shortcuts import render
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework import viewsets
+from rest_framework import generics
+
+@api_view(['GET','POST'])
+def books(request):
+    return Response('List of the books', status = status.HTTP_200_OK)
+
+class MenuItemViewSet(viewsets.ModelViewSet)
+    queryset
+    serializer
+class ReadOnlyMenuItemView(viewsets.ReadOnlyModelViewSet)
+    CreateAPIView
+    ListAPIView etc.
+
+class MenuItemView(generics.ListCreateAPIView)
+    Permission_classes = [IsAuthenicated]
+    
+    def get_permissions(self):
+        permission_classes = []
+        if self.request.method != 'GET'
+            permission_classes = [IsAuthenticated]
+        
+        return [permission() for permission in permissin_classes]
+
+class OrderView(generics.ListCreateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenicated]
+
+    def get_queryset(self):
+        return Order.objects.all().filter(user = self.request.user)
+
+# CREATE SERIALIZERS
+
+
+# MAP ROUTES
+- Create app-level urls.py
+    E.g. from django.urls import path
+from . import views
+
+urlpatterns = [
+    # path('books/', views.books)
+    path('books', views.BookList.as_view())
+]
+
+- Add app-level url path to project-level urls.py  
+    E.g. 
+    from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include('LittleLemonAPI.urls')),
+
+
+# Create test data  
+- E.g. Menu items
+- Orders
+
+# FORM VALIDATION
+
+
+# IMPLEMENT THROTTLING
+To 5 calls per minute
+
+# IMPLEMENT PAGINATION
+
+
+# IMPLEMENT FILTERING, SEARCHING AND ORDERING
+
+
+# IMPLEMENT user authentication (Djsoer token-based)
+
+
+# IMPLEMENT USER authorization (privileges)
+Install Djoser
+
+# EXECUTE TEST CASES TO ENSURE BUSINESS REQUIREMENTS HAVE BEEN MET  
+Ref: See test plan and status in Google sheet: https://docs.google.com/spreadsheets/d/1QeKFUfuDS9zleyRI7xJ-eHNPRXbaPjJ0O8urqq6ghu4/edit?gid=0#gid=0
+- And add extra test cases, as needed for testing authorization, validation and negative test cases/bad input
+
+
+
+
