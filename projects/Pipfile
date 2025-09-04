@@ -10,10 +10,10 @@ djangorestframework-csv = "*"
 djangorestframework-yaml = "*"
 bleach = "*"
 django-filter = "*"
-djoser = "*"
 djangorestframework-simplejwt = "*"
 django = "*"
 djangorestframework = "*"
+djoser = "*"
 
 [dev-packages]
 

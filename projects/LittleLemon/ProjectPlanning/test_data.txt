@@ -1,0 +1,14 @@
+# superuser
+sarah, dogcatcamelpig, {"auth_token": "3a8dffd5dfb0e37042bce82b0266fcdff786d96a"}
+
+# Manager group user
+marcus, marcuspass123
+
+# Delivery crew users
+kaitlyn, kaitlynpass123
+eva, evapass123
+
+# Customers
+ren, renpass123
+sage, sagepass123
+aroha, arohapass123

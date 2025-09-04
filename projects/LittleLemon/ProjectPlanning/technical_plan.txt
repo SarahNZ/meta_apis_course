@@ -1,142 +1,81 @@
 TECHNICAL PLAN
 
 # PROJECT & APP SET-UP ✅
-Create a project directory called “LittleLemon” ✅
-Inside this directory in the VS Code terminal, activate the virtual environment. E.g. `pipenv shell`  and install the pipenv dependencies `pipenv install` ✅
-cd to the new project directory and install Django. E.g. pipenv install django. Check Django is installed using pip show django ✅
-Activate the virtual environment (using pipenv shell) ✅
-Create Django project using django-admin startproject LittleLemon ✅
-Create Django API app, LittleLemonAPI and add to settings.py (using python manage.py startapp LittleLemonAPI) ✅
-Install DRF (using pipenv install djangorestframework) and add 'rest_framework' to the list of installed apps ✅
-Run migrations (using python manage.py makemigrations and migrate) to craete the db.sqlite3 db ✅
-Run the server and check you can browse to thelocalhost 8000 port -> Success rocket page should be displayed ✅
+- Create a project directory called “LittleLemon” ✅
+- Inside the project directory, activate the virtual environment. E.g. `pipenv shell`  and install the pipenv dependencies `pipenv install` ✅
+- cd to the new project directory and install Django. E.g. pipenv install django. Check Django is installed using pip show django ✅
+- Activate the virtual environment (using pipenv shell) ✅
+- Create Django project (django-admin startproject LittleLemon) ✅
+- Create Django API app, LittleLemonAPI (python manage.py startapp LittleLemonAPI) ✅
+- Add the API app to the list of installed apps in settings.py ✅
+- Add the route to the API app in the project-levels urls.py and comment out ✅
+- Create empty urls.py and serializers.py files ✅
+- Install DRF (using pipenv install djangorestframework) and add 'rest_framework' to the list of installed apps ✅
+- Run migrations (using python manage.py makemigrations and migrate) to craete the db.sqlite3 db ✅
+- Run the server and check you can browse to thelocalhost 8000 port -> Success rocket page should be displayed ✅
 
-# CREATE USERS & GROUPS - in progress
+# CREATE SUPERUSER AND CHECK ADMIN PORTAL WORKING ✅
 - Create superuser (python manage.py createsuperuser) ✅
     - sarah, sarah@littlelemon.com, dogcatcamelpig
 - Run server (python manage.py runserver) ✅
 - Browse to admin portal (http://localhost:8000/admin) ✅
 - Log in as superuser ✅
+
+# IMPLEMENT DJOSER'S USER AUTHENTICATION ✅
+- In virtual env/correct project dir, install Djoser (pipenv install djoser) ✅
+- Add Djoser to installed apps list in settings.py ✅
+- Add Djoser section/variable to settings.py {'USER_ID_FIELDS': 'username','LOGIN_FIELD': 'email',}✅
+- In the project-level urls.py add Djoser auth endpoints [path('auth/', include('djoser.urls')),path('auth/', include('djoser.urls.authtoken')),] ✅
+- Run server, then browse to the Djoser auth root endpoint. E.g. http://localhost:8000/auth/ to make sure it's working
+- View the list of users at /auth/users ✅
+See endpoints_lst for other relevant Djoser user authentication endpoints
+
+# IMPLEMENT DRF'S TOKEN AUTHENTICATION - in progress
+- Note: Decided to use DRF's simple token authentication system rather than JWT (which is better for bigger projects)
+- Add rest_framework.authtoken to INSTALLED_APPS ✅
+- Run migrations (so authtoken_token table gets created) ✅
+- Configure DRF to use token authentication by default. I.e.
+    REST_FRAMEWORK = {
+        'DEFAULT_AUTHENTICATION_CLASSES': [
+            'rest_framework.authentication.TokenAuthentication',
+        ],
+    }
+- Run server, and test that superuser can create a login token via BrowsableAPI (/auth/token/login/)
+"auth_token": "3a8dffd5dfb0e37042bce82b0266fcdff786d96a" ✅
+
+CREATE TEST USERS AND GROUPS
 - Create group - Manager ✅
 - Create group - Delivery Crew ✅
-- Assign users to relevant group. (Note: Users without a group are customers)
-    (Username is first name in lower case)
-    - Manager: Marcus
-    - Delivery Crew: Kaitlyn, Eva  
-    - Customers: Ren, Sage, Aroha
+- Create users and assign to relevant group ✅
+    (Username is first name in lower case, password is first name plus pass123)
+    - Manager: Marcus ✅
+    - Delivery Crew: Kaitlyn, Eva ✅
+    - Customers: Ren, Sage, Aroha (no group) ✅
+- Add test users and their passwords to test_data.txt ✅
 
-# CREATE MODELS ✅
-Provided by Meta. Copy and paste directly to models.py ✅
-Save file and run migrations ✅
-
-# CREATE TEST DATA 
-I.e. Two records in each db table
-
-# ENDPOINTS -  - in progress
-## User registration and token generation endpoints
-See endpoints required in Notion: 
-
-## MENU-ITEMS ENDPOINTS
-/api/menu-items (GET, Role = Customer, delivery crew, lists all menu items, return a 200 ok code)
-/api/menu-items (POST, PUT, PATCH, DELETE, Role = customer, delivery crew)
-
-
-/api/users/{userId}/groups
-/api/users/{userId}/cart
-/api/users/{userId}/cart/menu-items
-/api/orders
-/api/orders/{orderId}
-/api/orders?status=delivered
-/api/orders/status=pending
-
-
-# CREATE VIEWS
-E.g.
-from django.shortcuts import render
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework import viewsets
-from rest_framework import generics
-
-@api_view(['GET','POST'])
-def books(request):
-    return Response('List of the books', status = status.HTTP_200_OK)
-
-class MenuItemViewSet(viewsets.ModelViewSet)
-    queryset
-    serializer
-class ReadOnlyMenuItemView(viewsets.ReadOnlyModelViewSet)
-    CreateAPIView
-    ListAPIView etc.
-
-class MenuItemView(generics.ListCreateAPIView)
-    Permission_classes = [IsAuthenicated]
-    
-    def get_permissions(self):
-        permission_classes = []
-        if self.request.method != 'GET'
-            permission_classes = [IsAuthenticated]
-        
-        return [permission() for permission in permissin_classes]
-
-class OrderView(generics.ListCreateAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenicated]
-
-    def get_queryset(self):
-        return Order.objects.all().filter(user = self.request.user)
-
-# CREATE SERIALIZERS
-
-
-# MAP ROUTES
-- Create app-level urls.py
-    E.g. from django.urls import path
-from . import views
-
-urlpatterns = [
-    # path('books/', views.books)
-    path('books', views.BookList.as_view())
-]
-
-- Add app-level url path to project-level urls.py  
-    E.g. 
-    from django.contrib import admin
-from django.urls import path, include
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('LittleLemonAPI.urls')),
-
-
-# Create test data  
-- E.g. Menu items
-- Orders
-
-# FORM VALIDATION
-
+# ADD FUNCTIONALITY ONE FEATURE AT AT TIME
+    - For all features consider:
+        - models.py (then run the migrations, also register each model to the admin app)
+        - views.py (including consider security. I.e. Which users/groups should be able to do specific HTTP actions)
+        - serializers (including form validation)
+        - map routes in urls.py (app-level)
+    - features:
+        - 
 
 # IMPLEMENT THROTTLING
 To 5 calls per minute
 
-# IMPLEMENT PAGINATION
-
-
 # IMPLEMENT FILTERING, SEARCHING AND ORDERING
 
-
-# IMPLEMENT user authentication (Djsoer token-based)
-
-
-# IMPLEMENT USER authorization (privileges)
-Install Djoser
+# IMPLEMENT PAGINATION
 
 # EXECUTE TEST CASES TO ENSURE BUSINESS REQUIREMENTS HAVE BEEN MET  
 Ref: See test plan and status in Google sheet: https://docs.google.com/spreadsheets/d/1QeKFUfuDS9zleyRI7xJ-eHNPRXbaPjJ0O8urqq6ghu4/edit?gid=0#gid=0
 - And add extra test cases, as needed for testing authorization, validation and negative test cases/bad input
 
+# SUBMIT ASSIGNMENT
+
+# (EXTRA): CREATE AUTOMATED API TESTS USING TOOL LIKE DJANGO, POSTMAN OR RESTASSURE
 
 
 
