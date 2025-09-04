@@ -4,8 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-django = "*"
-djangorestframework = "*"
 django-debug-toolbar = "*"
 djangorestframework-xml = "*"
 djangorestframework-csv = "*"
@@ -14,6 +12,8 @@ bleach = "*"
 django-filter = "*"
 djoser = "*"
 djangorestframework-simplejwt = "*"
+django = "*"
+djangorestframework = "*"
 
 [dev-packages]
 
