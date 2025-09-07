@@ -58,22 +58,163 @@ CREATE TEST USERS AND GROUPS
         - requirements & test cases
         - users & security (limit permissions to minimum required, block unauthenticated and unauthorized users and unncessary HTTP methods as applicable)
         - models.py (then run the migrations, also register each model to the admin app)
-        - views.py 
+        - views.py(only support HTTP methods that are required, return relevant status code)
         - serializers (including form validation)
         - map routes in urls.py (app-level)
         - testing (manual & automated)
     - features:
-        - 
+
+    * USER MANAGEMENT
+        - Create new users with name, email and password (/api/users no auth or role required)
+            I.e. POST /api/users
+            - valid input
+            - invalid input (blank/bad username, password, both)
+        - Manager can view a list of all users (GET /api/users with manager token)
+        - Check unauthenticted users and non-Manager users (I.e. Delivery crew and Customers can't view a list of users)
+        - Display the current user (GET /api/users/users/me/ anyone with a valid user token)
+        - User can log in with valid username and password. Generates access tokens
+            I.e. POST /token/login/
+
+    * USER GROUP MANAGEMENT
+
+        * MANAGER GROUP
+        - Manager can view a list of all the users in the Manager group.
+            GET /api/groups/manager/users
+        - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the manager group
+        - Manager can add users to the Manager group and remove them (/api/users/{userId}/groups)
+            POST /api/groups/manager/users with manager token assigns user in the payload to the manager group
+                and return 201 - Created code
+            - Check valid/invalid/blank input
+        - Assume Managers can't edit users (I.e. Can't update user information) - Would check in real world
+        - Managers can delete users from the Manager group
+            DELETE /api/groups/manager/users/{userId} - return 200 - Success,
+            or 404 Not found if user did not exist
+        - Users that aren't managers (or unauthenticated users) can't add or remove users from the Managers group
+        
+        * DELIVERY CREW GROUP
+            - Manager can view a list of all the users in the Delivery Crew group.
+            GET /api/groups/delivery-crew/users
+        - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the DC group
+        - Manager can add users to the DC group 
+            POST /api/groups/delivery-crew/users with manager token assigns user in the payload to the manager group
+                and return 201 - Created code
+            - Check valid/invalid/blank input
+        - Managers can delete users from the DC group
+            DELETE /api/groups/delivery-crew/users/{userId} - return 200 - Success,
+            or 404 Not found if user did not exist
+        - Users that aren't managers (or unauthenticated users) can't add or remove users from the Delivery Crew group
+
+    * ALL AUTHENTICATED USERS CAN VIEW ALL MENU ITEMS
+        - Customers, delivery crew and managers can view all menu items
+            GET only /api/menu-items (return 200 ok code)
+            I.e. Check auth/not auth, item exists/does not (correct status codes)
+        - Customers and delivery crew can't do other HTTP methods when viewing all menu items
+            POST, PUT, PATCH, DELETE /api/menu-items  (Deny access and return 403 - Unauthorised status code)
+        - Customers can filter menu items by price and category
+            I.e. Check auth/not auth, item exists/does not (correct status codes)
+        - Customers can search for menu items
+            I.e. Check auth/not auth, item exists/does not (correct status codes)
+        - Customers, delivery crew and managers can view a single menu item  
+            GET /api/menu-items/{menuItem}
+        - Customers and delivery crew can't update (partially or fully) or delete a menu item
+            POST, PUT, PATCH, DELETE /api/menu-items/{menuItem}  (Deny access and return 403 - Unauthorised status code)
+
+    * MENU ITEM MANAGEMENT  
+        - Managers can add, edit and remove menu items. I.e. 
+            - Create a new menu item POST /api/menu-items/ (and return 201 - Created code)
+            - Update a single menu item PUT, PATCH /api/menu-items/{menuItem}
+            - Delete a single menu item DELETE /api/menu-items/{menuItem}
+                -> Then try to view it
+            - Check valid/invalid/blank input and when item does not exist
+        - Users that aren't managers can't add, edit or remove menu items
+    
+    * CART MANAGEMENT
+        - Customers can add menu items to their cart
+            POST /api/users/{userId}/cart/menu-items or
+            POST /api/cart/menu-items - adds the menu items to the cart. 
+                Sets the authenticated user as the user id for these cart items 
+            - Check valid/invalid & auth/not auth actions
+        - Customers can view the menu items in their cart  
+            GET /api/cart/menu-items for the current user token  
+        - Customers can't view other customer's cart (menu items)
+        - Customers can empty their cart at any time
+            DELETE /api/users/{userId}/cart
+            or 
+            DELETE /api/cart/menu-items - deletes all menu items created by the current user token
+            - Valid, return error if cart already empty
+        - Customers can't empty the carts of other customers
+        - One customer should be able to have only one cart at a time
+            - Check valid action & try to create more than one cart
+            - Check customer can't edit another customer's cart
+        - One cart can have 1 or many items
+
+    * ORDER MANAGEMENT
+
+        * CUSTOMER
+            - Customers can place an order
+                POST /api/orders - Creates a new order item for the current user,
+                    gets current cart items from the cart endpoints and adds those items to the 
+                    items in the order items table. Then deletes all items from the cart for this user
+                - Check valid/invalid & auth/not auth actions
+            - Assume delivery crew can place orders - Would check in real world
+            - Check unauthenticated users can't place an order
+            -Customers can view a list of their orders (at any stage and see the status and total price)
+                I.e. GET /api/orders with Customer token - returns all orders with order items created by the user
+            - Check unathorized users can't see a list of customers' order, and customer can't see other customers orders
+            - Customer can view details of a single order 
+                GET /api/orders/{orderId} - displays all items for this order id. 
+                - displays an error if the order id doesn't belong to the current user 
+            - Customer can update their order
+                PUT, PATCH /api/orders/{orderId}
+                - but not update delivery person or status
+            - Assume customer can't delete their order - Would check if real world
+        
+        * MANAGER
+            - Manager can view all orders for all users
+                GET /api/orders if have manager token
+            - Manager can view/filter orders for a single user
+            - Manager can view a single order
+                GET /api/orders/{orderId}
+            - Manager can assign order to a delivery person and/or update order status to 0 or 1
+                Note: status = 0 means order is out for delivery
+                If a delivery person is assigned to this order, and status = 1 means order has been delivered
+                PUT, PATCH /api/orders/{orderId} if have manager token)
+                - Check that Manager can't assign order to customer or invalid delivery person/not exists
+            - Manager can delete an order  
+                DELETE /api/orders/{orderId}
+            - Check that unauthenticated users and non-Manager users (delivery crew/customers can't orders, including their own and other users)
+            - User with delivery crew role can change order status from pending to delivered.
+                - Check Customer or unauthorized person can't change the status of their order
+            - Manager can filter orders by status (to see which have been delivered, and which have not been delivered yet)
+                I.e. /api/orders?status=delivered or /api/orders?status=pending with manager token. 
+                - Check auth/unauth & group valid/invalid
+            - Assume Manager can also mark orders as delivered (check this assumption)
+
+        * DELIVERY CREW
+            - Delivery crew can view all orders assigned to the delivery crew
+                I.e. GET /api/orders with delivery person token
+            - Check that delivery crew can't view orders that aren't assigned to the DC
+            - DC can view a single order assigned to the delivery crew
+                GET /api/orders/{orderId}
+            - Check that DC can't view a single order that's not assigned to the DC
+            - DC can update the status of an order as delivered (1). I.e.
+                PATCH /api/orders/{orderId}
+            - DC can't update any other fields of an order
+            - DC can't update the status of an order not assigned to the DC
 
 # IMPLEMENT THROTTLING
+- For authenticated and unauthenticated users
 To 5 calls per minute
-
-# IMPLEMENT FILTERING, SEARCHING AND ORDERING
+- Check all relevant endpoint calls allow 5 calls per minute, then no more, and then allow more calls after a minute
 
 # IMPLEMENT PAGINATION
+- Decide what is a good number of menu items and orders to display per page
+- Implement this project-wide
+- Test it
 
 # EXECUTE TEST CASES TO ENSURE BUSINESS REQUIREMENTS HAVE BEEN MET  
-Ref: See test plan and status in Google sheet: https://docs.google.com/spreadsheets/d/1QeKFUfuDS9zleyRI7xJ-eHNPRXbaPjJ0O8urqq6ghu4/edit?gid=0#gid=0
+See test_little_lemon_api Google sheet
+Link: https://docs.google.com/spreadsheets/d/1QeKFUfuDS9zleyRI7xJ-eHNPRXbaPjJ0O8urqq6ghu4/edit?gid=740715841#gid=740715841
 - And add extra test cases, as needed for testing authorization, validation and negative test cases/bad input
 
 # SUBMIT ASSIGNMENT
