@@ -32,6 +32,4 @@ users/reset_username_confirm/
 /api/orders?status=delivered
 /api/orders/status=pending
 
-See endpoint details/requirements in Notion page: https://www.notion.so/b1c632ccf2ac4146a7b191a57bce5561?v=a4bff63aa0ad48c8808373da05f0cd4c&p=263734154cde801682adc52720148b27&pm=s
-
 

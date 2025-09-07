@@ -1,3 +1,5 @@
+Usernames and passwords of the current users 
+
 # superuser
 sarah, dogcatcamelpig, {"auth_token": "3a8dffd5dfb0e37042bce82b0266fcdff786d96a"}
 

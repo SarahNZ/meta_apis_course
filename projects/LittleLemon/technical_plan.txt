@@ -58,17 +58,19 @@ CREATE TEST USERS AND GROUPS
         - requirements & test cases
         - users & security (limit permissions to minimum required, block unauthenticated and unauthorized users and unncessary HTTP methods as applicable)
         - models.py (then run the migrations, also register each model to the admin app)
-        - views.py(only support HTTP methods that are required, return relevant status code)
+        - views.py (only support HTTP methods that are required, return relevant status code)
         - serializers (including form validation)
         - map routes in urls.py (app-level)
         - testing (manual & automated)
-    - features:
+
+    - Features:
 
     * USER MANAGEMENT
-        - Create new users with name, email and password (/api/users no auth or role required)
-            I.e. POST /api/users
+        - Customers can register. Create new users with name, email and password
+            POST /api/users (no auth or role required)
             - valid input
             - invalid input (blank/bad username, password, both)
+        - Customers can log in with their username and password and get access tokens
         - Manager can view a list of all users (GET /api/users with manager token)
         - Check unauthenticted users and non-Manager users (I.e. Delivery crew and Customers can't view a list of users)
         - Display the current user (GET /api/users/users/me/ anyone with a valid user token)
@@ -78,7 +80,8 @@ CREATE TEST USERS AND GROUPS
     * USER GROUP MANAGEMENT
 
         * MANAGER GROUP
-        - Manager can view a list of all the users in the Manager group.
+        - Managers can log in
+        - Managers can view a list of all the users in the Manager group.
             GET /api/groups/manager/users
         - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the manager group
         - Manager can add users to the Manager group and remove them (/api/users/{userId}/groups)
@@ -110,19 +113,30 @@ CREATE TEST USERS AND GROUPS
             I.e. Check auth/not auth, item exists/does not (correct status codes)
         - Customers and delivery crew can't do other HTTP methods when viewing all menu items
             POST, PUT, PATCH, DELETE /api/menu-items  (Deny access and return 403 - Unauthorised status code)
-        - Customers can filter menu items by price and category
+        - Customers can filter/view menu items by category
             I.e. Check auth/not auth, item exists/does not (correct status codes)
         - Customers can search for menu items
             I.e. Check auth/not auth, item exists/does not (correct status codes)
+        - Customers can sort menu items by price
+            - valid/invalid search criteria
+        - Customers can paginate menu items
         - Customers, delivery crew and managers can view a single menu item  
             GET /api/menu-items/{menuItem}
         - Customers and delivery crew can't update (partially or fully) or delete a menu item
             POST, PUT, PATCH, DELETE /api/menu-items/{menuItem}  (Deny access and return 403 - Unauthorised status code)
+    
+    * CATETORY MANAGEMENT
+        - Managers can add categories
+        - Anonymous users and non-Manager users can't add categories
+        - Customers can view all categories
+            - anonymous users can't
 
     * MENU ITEM MANAGEMENT  
         - Managers can add, edit and remove menu items. I.e. 
             - Create a new menu item POST /api/menu-items/ (and return 201 - Created code)
             - Update a single menu item PUT, PATCH /api/menu-items/{menuItem}
+                - Requirements say "Managers can update the item of the day". 
+                Do we need to be able to label the item of the day? How do we identify the item of the day? Check this
             - Delete a single menu item DELETE /api/menu-items/{menuItem}
                 -> Then try to view it
             - Check valid/invalid/blank input and when item does not exist
@@ -151,7 +165,7 @@ CREATE TEST USERS AND GROUPS
     * ORDER MANAGEMENT
 
         * CUSTOMER
-            - Customers can place an order
+            - Customers can place one or more orders
                 POST /api/orders - Creates a new order item for the current user,
                     gets current cart items from the cart endpoints and adds those items to the 
                     items in the order items table. Then deletes all items from the cart for this user
@@ -208,9 +222,7 @@ To 5 calls per minute
 - Check all relevant endpoint calls allow 5 calls per minute, then no more, and then allow more calls after a minute
 
 # IMPLEMENT PAGINATION
-- Decide what is a good number of menu items and orders to display per page
-- Implement this project-wide
-- Test it
+- Make sure users can paginate relevant endpoints
 
 # EXECUTE TEST CASES TO ENSURE BUSINESS REQUIREMENTS HAVE BEEN MET  
 See test_little_lemon_api Google sheet
