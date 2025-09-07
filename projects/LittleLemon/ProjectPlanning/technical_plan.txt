@@ -34,7 +34,7 @@ See endpoints_lst for other relevant Djoser user authentication endpoints
 - Note: Decided to use DRF's simple token authentication system rather than JWT (which is better for bigger projects)
 - Add rest_framework.authtoken to INSTALLED_APPS ✅
 - Run migrations (so authtoken_token table gets created) ✅
-- Configure DRF to use token authentication by default. I.e.
+- Configure DRF to use token authentication by default. I.e. ✅
     REST_FRAMEWORK = {
         'DEFAULT_AUTHENTICATION_CLASSES': [
             'rest_framework.authentication.TokenAuthentication',
@@ -55,10 +55,13 @@ CREATE TEST USERS AND GROUPS
 
 # ADD FUNCTIONALITY ONE FEATURE AT AT TIME
     - For all features consider:
+        - requirements & test cases
+        - users & security (limit permissions to minimum required, block unauthenticated and unauthorized users and unncessary HTTP methods as applicable)
         - models.py (then run the migrations, also register each model to the admin app)
-        - views.py (including consider security. I.e. Which users/groups should be able to do specific HTTP actions)
+        - views.py 
         - serializers (including form validation)
         - map routes in urls.py (app-level)
+        - testing (manual & automated)
     - features:
         - 
 
