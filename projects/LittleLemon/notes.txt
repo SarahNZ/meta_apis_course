@@ -1,16 +1,23 @@
 Usernames and passwords of the current users 
 
 # superuser
-sarah, dogcatcamelpig, {"auth_token": "3a8dffd5dfb0e37042bce82b0266fcdff786d96a"}
+sarah, dogcatcamelpig, 
+{"auth_token": "3a8dffd5dfb0e37042bce82b0266fcdff786d96a"}
 
 # Manager group user
-marcus, marcuspass123
+marcus, marcuspass123,
+{"auth_token": "87357e8ccaedb76b90e03b9efb55ad6f039a2ef0"}
+
+sage, sagepass123
 
 # Delivery crew users
-kaitlyn, kaitlynpass123
+kaitlyn, kaitlynpass123,
+{"auth_token": "0eca685221d53f4855b2579b0194be26b89c9f50"}
+
 eva, evapass123
 
 # Customers
-ren, renpass123
-sage, sagepass123
+ren, renpass123,
+{"auth_token": "6700999567921565fb9f2efe442068673474d7d5"}
+
 aroha, arohapass123

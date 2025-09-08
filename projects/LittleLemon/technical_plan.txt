@@ -1,4 +1,4 @@
-TECHNICAL PLAN
+TECHNICAL PLAN ✅ ❌
 
 # PROJECT & APP SET-UP ✅
 - Create a project directory called “LittleLemon” ✅
@@ -48,7 +48,7 @@ CREATE TEST USERS AND GROUPS
 - Create group - Delivery Crew ✅
 - Create users and assign to relevant group ✅
     (Username is first name in lower case, password is first name plus pass123)
-    - Manager: Marcus ✅
+    - Manager: Marcus ✅ (Make Staff/Admin, so they can add other users to the Manager group)
     - Delivery Crew: Kaitlyn, Eva ✅
     - Customers: Ren, Sage, Aroha (no group) ✅
 - Add test users and their passwords to test_data.txt ✅
@@ -66,33 +66,41 @@ CREATE TEST USERS AND GROUPS
     - Features:
 
     * USER MANAGEMENT
-        - Customers can register. Create new users with name, email and password
-            POST /api/users (no auth or role required)
-            - valid input
-            - invalid input (blank/bad username, password, both)
-        - Customers can log in with their username and password and get access tokens
-        - Manager can view a list of all users (GET /api/users with manager token)
-        - Check unauthenticted users and non-Manager users (I.e. Delivery crew and Customers can't view a list of users)
-        - Display the current user (GET /api/users/users/me/ anyone with a valid user token)
-        - User can log in with valid username and password. Generates access tokens
+        - Customers can register. Create new users with name, email and password ✅
+            POST /auth/users (no auth or role required)
+            - valid input ✅
+            - invalid input (blank/bad username, password, both) ✅
+                -> Email is optional, but if provided, must be valid
+                -> Can't create duplicate usernames
+                -> Username and password fields must not be blank. Email can be blank
+                -> Customer can't add email later using PATCH (Get 401 Unauthorized error code)
+        - User can log in with valid username and password and get access token ✅
             I.e. POST /token/login/
+        - Managers can log in and get access token ✅
+        - Superuser can view all users ✅
+            POST /auth/users/ and valid superuser token
+        - Manager who isn't staff can't view list of all users ✅
+        - Manager (who is staff/admin) can view a list of all users ✅
+            GET /api/users with manager token
+        - Check unauthenticted users ✅, delivery crew users ✅ and authenticated customers ✅ can't view a list of users
+        - Display the current user ✅
+            GET /auth/users/me (anyone with a valid user token)
 
-    * USER GROUP MANAGEMENT
+    * USER GROUP MANAGEMENT 
 
         * MANAGER GROUP
-        - Managers can log in
-        - Managers can view a list of all the users in the Manager group.
+        - Managers can view a list of all the users in the Manager group
             GET /api/groups/manager/users
         - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the manager group
-        - Manager can add users to the Manager group and remove them (/api/users/{userId}/groups)
-            POST /api/groups/manager/users with manager token assigns user in the payload to the manager group
-                and return 201 - Created code
-            - Check valid/invalid/blank input
+        - Manager can add users to the Manager group ✅ and remove them ❌(/api/users/{userId}/groups)
+            POST /api/groups/manager/users with manager staff token (assigns user in the form payload e.g. {"username": "eva"} to the manager group)
+                and return 201 - Created code ✅
+            - Check valid/invalid/blank input ✅
         - Assume Managers can't edit users (I.e. Can't update user information) - Would check in real world
-        - Managers can delete users from the Manager group
-            DELETE /api/groups/manager/users/{userId} - return 200 - Success,
+        - Managers can delete users from the Manager group ✅
+            DELETE /api/groups/managers/users/{userId} - return 200 - Success,
             or 404 Not found if user did not exist
-        - Users that aren't managers (or unauthenticated users) can't add or remove users from the Managers group
+        - Users that aren't managers (or unauthenticated users) can't add ✅ or remove users from the Managers group
         
         * DELIVERY CREW GROUP
             - Manager can view a list of all the users in the Delivery Crew group.
@@ -125,7 +133,7 @@ CREATE TEST USERS AND GROUPS
         - Customers and delivery crew can't update (partially or fully) or delete a menu item
             POST, PUT, PATCH, DELETE /api/menu-items/{menuItem}  (Deny access and return 403 - Unauthorised status code)
     
-    * CATETORY MANAGEMENT
+    * CATEGORY MANAGEMENT
         - Managers can add categories
         - Anonymous users and non-Manager users can't add categories
         - Customers can view all categories
