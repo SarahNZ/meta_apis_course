@@ -3,7 +3,12 @@ from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from django.contrib.auth.models import User
 
-# Run the tests from the project-level directory using "pytest tests/test_api.py -v"
+# To run all the tests in the project use "pytest tests/ -v" from the project-level directory,
+# or run all the tests in a single test file use "pytest tests/test_api.py -v",
+# or run one method such as the login test use "pytest tests/test_api.py::UserAPITestCase::test_login -v"
+# Note: "-v" shows each test name and result, and --tb=short shows short tracebacks on failure
+# "--maxfail=1 --disable-warnings" are useful to stop after the first failure, and hide warning messages
+# pytest will automatically set up a temporary test database
 
 class UserAPITestCase(APITestCase):
     def setUp(self): 
@@ -22,4 +27,6 @@ class UserAPITestCase(APITestCase):
         response = self.client.post(url, data, format ='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_json = response.json()
+        print(response.json())  # Will show the dict in the terminal if run with "-s"
         self.assertIn('auth_token', response_json)
+        # self.assertIn('auth_token', response.json(), msg=f"Response JSON: {response.json()}") # pytest will print the JSON if the test fails
