@@ -43,6 +43,16 @@ See endpoints_lst for other relevant Djoser user authentication endpoints
 - Run server, and test that superuser can create a login token via BrowsableAPI (/auth/token/login/)
 "auth_token": "3a8dffd5dfb0e37042bce82b0266fcdff786d96a" ✅
 
+# INSTALL PYTEST AND PYTEST-DJANGO
+- Install pytest (pipenv install pytest)
+- Install pytest-django (pipenv install pytest-django)
+- Create a new directory "tests" one level down from the top-level project directory
+- Create a "pytest.ini" file containing
+    [pytest]
+    DJANGO_SETTINGS_MODULE = LittleLemon.settings  
+    python_files = tests.py test_*.py *_tests.py
+- Create a "test_api.py" or similar file
+
 CREATE TEST USERS AND GROUPS
 - Create group - Manager ✅
 - Create group - Delivery Crew ✅
@@ -89,16 +99,16 @@ CREATE TEST USERS AND GROUPS
     * USER GROUP MANAGEMENT 
 
         * MANAGER GROUP
-        - Managers can view a list of all the users in the Manager group
+        - Managers can view a list of all the users in the Manager group ✅
             GET /api/groups/manager/users
         - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the manager group
-        - Manager can add users to the Manager group ✅ and remove them ❌(/api/users/{userId}/groups)
+        - Manager can add users to the Manager group ✅
             POST /api/groups/manager/users with manager staff token (assigns user in the form payload e.g. {"username": "eva"} to the manager group)
                 and return 201 - Created code ✅
             - Check valid/invalid/blank input ✅
         - Assume Managers can't edit users (I.e. Can't update user information) - Would check in real world
         - Managers can delete users from the Manager group ✅
-            DELETE /api/groups/managers/users/{userId} - return 200 - Success,
+            DELETE /api/groups/manager/users with manager staff token (removes user provided in the form payload e.g. {"username": "eva"} from the manager group) - return 200 - Success,
             or 404 Not found if user did not exist
         - Users that aren't managers (or unauthenticated users) can't add ✅ or remove users from the Managers group
         
