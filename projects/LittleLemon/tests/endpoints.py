@@ -1,6 +1,10 @@
-# USER REGISTRATION AND AUTHENTICATION ENDPOINTS
+LOGIN = "/auth/token/login/"  # Djoser login endpoint
+USERS = "/api/users/"
+MANAGERS = "/api/groups/manager/users/"
+DELIVERY_CREW = "/api/groups/delivery-crew/users/"
 
-## DJOSER (User token-based authentication)
+'''
+### DJOSER (User token-based authentication) ###
 http://localhost:8000/auth
 /users/
 /users/me/
@@ -15,7 +19,7 @@ users/reset_username_confirm/
 /token/login/ (Note: Need to install DRF Simple TokenAuthentication or JWT for this to work)
 /token/logout/
 
-# USER/GROUP MANAGEMENT ENDOINTS
+# USER/GROUP MANAGEMENT ENDPOINTS
 /api/users/{userId}/groups
 
 ## MENU-ITEMS ENDPOINTS
@@ -31,5 +35,4 @@ users/reset_username_confirm/
 /api/orders/{orderId}
 /api/orders?status=delivered
 /api/orders/status=pending
-
-
+'''

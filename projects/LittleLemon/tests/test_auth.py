@@ -1,4 +1,5 @@
 from base_test_utils import BaseAPITestCase
+from endpoints import LOGIN
 
 class AuthTests(BaseAPITestCase):
     def test_login_success(self):
@@ -6,6 +7,5 @@ class AuthTests(BaseAPITestCase):
         self.assertIsNotNone(token)
         
     def test_login_failure(self):
-        login_url = "/auth/token/login"
-        response = self.client.post(login_url, {"username": "wrong", "password": "wrong"}, format = "json")
+        response = self.client.post(LOGIN, {"username": "wrong", "password": "wrong"}, format = "json")
         self.assertEqual(response.status_code, 400) # type: ignore

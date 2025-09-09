@@ -1,16 +1,16 @@
 'BUSINESS REQUIREMENTS/TEST CASES'
-The admin can assign users to the manager group
-You can access the manager group with an admin token
+The admin can assign users to the manager group (POST /api/groups/manager/users/) ✅
+You can access the manager group with an admin token (GET /api/groups/manager/users/) ✅
 The admin can add menu items
 The admin can add categories
-Managers can log in
+Managers can log in (and get access token) (POST /auth/token/login/) ✅ 
 Managers can update the item of the day
 Managers can assign users to the delivery crew
 Managers can assign orders to the delivery crew
 The delivery crew can access orders assigned to them
 The delivery crew can update an order as delivered
-Customers can register
-Customers can log in using their username and password and get access tokens
+Customers can register (/auth/users/)✅
+Customers can log in using their username and password and get access tokens (POST /auth/token/login)✅
 Customers can browse all categories
 Customers can browse all the menu items at once
 Customers can browse menu items by category

@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User, Group
 from django.shortcuts import render, get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 from .permissions import IsManager
@@ -8,7 +9,7 @@ from .serializers import UserSerializer
 
 # Endpoint /api/users/
 @api_view(['GET'])
-@permission_classes([IsManager])
+@permission_classes([IsAdminUser])
 def users(request):
     all_users = User.objects.all()
     serializer = UserSerializer(all_users, many = True)
@@ -16,7 +17,7 @@ def users(request):
 
 # Endpoint /api/groups/manager/users/
 @api_view(['GET','POST', 'DELETE'])
-@permission_classes([IsManager])
+@permission_classes([IsAdminUser])
 def managers(request):
         managers_group = get_object_or_404(Group, name = "Manager")
         
@@ -29,17 +30,23 @@ def managers(request):
             if username:
                 user = get_object_or_404(User, username = username)
                 if request.method == 'POST':
-                    managers_group.user_set.add(user)
+                    managers_group.user_set.add(user)  
+                    # Set user as staff when added to managers
+                    user.is_staff = True
+                    user.save()    
                     return Response({"message": "ok"}, status.HTTP_201_CREATED)
                 elif request.method == 'DELETE':
                     managers_group.user_set.remove(user)
+                    # Remove staff status when user is removed from Managers group
+                    user.is_staff = False
+                    user.save()   
                     return Response({"message": "ok"}, status.HTTP_200_OK)
 
         return Response({"message": "error"}, status.HTTP_400_BAD_REQUEST)
     
 # Endpoint /api/groups/delivery-crew/users/
 @api_view(['GET','POST', 'DELETE'])
-@permission_classes([IsManager])
+@permission_classes([IsAdminUser])
 def delivery_crew(request):
         delivery_crew = get_object_or_404(Group, name = "Delivery Crew")
         
