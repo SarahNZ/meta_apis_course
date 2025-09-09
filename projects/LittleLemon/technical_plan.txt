@@ -11,7 +11,7 @@ TECHNICAL PLAN ✅ ❌
 - Add the route to the API app in the project-levels urls.py and comment out ✅
 - Create empty urls.py and serializers.py files ✅
 - Install DRF (using pipenv install djangorestframework) and add 'rest_framework' to the list of installed apps ✅
-- Run migrations (using python manage.py makemigrations and migrate) to craete the db.sqlite3 db ✅
+- Run migrations (using python manage.py makemigrations and migrate) to create the db.sqlite3 db ✅
 - Run the server and check you can browse to thelocalhost 8000 port -> Success rocket page should be displayed ✅
 
 # CREATE SUPERUSER AND CHECK ADMIN PORTAL WORKING ✅
@@ -43,7 +43,7 @@ See endpoints_lst for other relevant Djoser user authentication endpoints
 - Run server, and test that superuser can create a login token via BrowsableAPI (/auth/token/login/)
 "auth_token": "3a8dffd5dfb0e37042bce82b0266fcdff786d96a" ✅
 
-# INSTALL PYTEST AND PYTEST-DJANGO
+# INSTALL PYTEST AND PYTEST-DJANGO ✅
 - Install pytest (pipenv install pytest)
 - Install pytest-django (pipenv install pytest-django)
 - Create a new directory "tests" one level down from the top-level project directory
@@ -53,7 +53,7 @@ See endpoints_lst for other relevant Djoser user authentication endpoints
     python_files = tests.py test_*.py *_tests.py
 - Create a "base_test_utils.py"
 
-CREATE TEST USERS AND GROUPS
+CREATE TEST USERS AND GROUPS ✅
 - Create group - Manager ✅
 - Create group - Delivery Crew ✅
 - Create users and assign to relevant group ✅
@@ -75,7 +75,7 @@ CREATE TEST USERS AND GROUPS
 
     - Features:
 
-    * USER MANAGEMENT
+    * USER MANAGEMENT ✅
         - Customers can register. Create new users with name, email and password ✅
             POST /auth/users (no auth or role required)
             - valid input ✅
@@ -98,10 +98,10 @@ CREATE TEST USERS AND GROUPS
 
     * USER GROUP MANAGEMENT 
 
-        * MANAGER GROUP
+        * MANAGER GROUP ✅
         - Managers can view a list of all the users in the Manager group ✅
             GET /api/groups/manager/users
-        - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the manager group
+        - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the manager group ✅
         - Manager can add users to the Manager group ✅
             POST /api/groups/manager/users with manager staff token (assigns user in the form payload e.g. {"username": "eva"} to the manager group)
                 and return 201 - Created code ✅
@@ -110,13 +110,13 @@ CREATE TEST USERS AND GROUPS
         - Managers can delete users from the Manager group ✅
             DELETE /api/groups/manager/users with manager staff token (removes user provided in the form payload e.g. {"username": "eva"} from the manager group) - return 200 - Success,
             or 404 Not found if user did not exist
-        - Users that aren't managers (or unauthenticated users) can't add ✅ or remove users from the Managers group
+        - Users that aren't managers (or unauthenticated users) can't add ✅ or remove users from the Managers group ✅
         
         * DELIVERY CREW GROUP
-            - Manager can view a list of all the users in the Delivery Crew group.
+            - Manager can view a list of all the users in the Delivery Crew group ✅
             GET /api/groups/delivery-crew/users
-        - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the DC group
-        - Manager can add users to the DC group 
+        - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the DC group ✅
+        - Manager can add users to the DC group - up to here :)
             POST /api/groups/delivery-crew/users with manager token assigns user in the payload to the manager group
                 and return 201 - Created code
             - Check valid/invalid/blank input

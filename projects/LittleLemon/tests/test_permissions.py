@@ -1,5 +1,5 @@
 from base_test_utils import BaseAPITestCase 
-from test_users import ManagerGroupTests
+from test_managers import ManagerGroupTests
 
 class PermissionTests(BaseAPITestCase):
     def test_unauthenticated_access(self):

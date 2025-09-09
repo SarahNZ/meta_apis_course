@@ -1,5 +1,3 @@
-# group/user management tests
-
 from base_test_utils import BaseAPITestCase
 from django.contrib.auth.models import Group, User
 
@@ -65,3 +63,19 @@ class ManagerGroupTests(BaseAPITestCase):
         response = self.client.delete(url, {"username": user3.username}, format = "json")
         self.assertEqual(response.status_code, 200) # Should still return 200 OK    # type: ignore
         self.assertFalse(user3.groups.filter(name = "Manager").exists())
+
+    def test_non_manager_cannot_view_all_users(self):
+        # Create a user who is not in the manager group
+        user_non_manager = User.objects.create_user(username="notmanager", password=self.password)
+        token = self.get_auth_token(username="notmanager", password=self.password)
+        self.authenticate_client(token)
+        url = "/api/users/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 403) # Forbidden for non-managers # type: ignore
+
+    def test_anonymous_cannot_view_all_users(self):
+        # Unauthenticate the client
+        self.client.logout()
+        url = "/api/users/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 401) # Unauthorized for anonymous users # type: ignore

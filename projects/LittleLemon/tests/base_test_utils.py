@@ -10,10 +10,11 @@ or run one method such as the login test use "pytest tests/test_api.py::UserAPIT
 
 Note: "-v" shows each test name and result in the terminal output, and --tb=short shows short tracebacks on failure
 "--maxfail=1 --disable-warnings" are useful to stop after the first failure, and hide warning messages.
-Also, Pytest will automatically set up a temporary test database. You don't need to configure that yourself.
 
 To see print() output in the terminal, run pytest with the "-s" option, or pytest will print the JSON if a test 
 fails if you add a msg parameter to the assertion. E.g. "self.assertIn('auth_token', response.json(), msg=f"Response JSON: {response.json()}") "
+
+In Django's test framework, each test method runs in its own isolated transaction and uses a separate test database that is reset for each test class.
 '''
 
 class BaseAPITestCase(APITestCase):
@@ -25,6 +26,9 @@ class BaseAPITestCase(APITestCase):
         
         # Create Managers group
         self.manager_group, _ = Group.objects.get_or_create(name="Manager")   # ", _" avoids a common bug
+        
+        # Create Delivery Crew group
+        self.delivery_crew_group, _ = Group.objects.get_or_create(name="Delivery Crew")   # ", _" avoids a common bug
 
     def get_auth_token(self, username=None, password=None):
         """
@@ -52,3 +56,10 @@ class BaseAPITestCase(APITestCase):
         """
         user = user or self.user1
         user.groups.add(self.manager_group)
+        
+    def add_user_to_delivery_crew_group(self, user=None):
+        """
+        Adds the specified user (or self.user1 if not provided) to the Delivery Crew group.
+        """
+        user = user or self.user1
+        user.groups.add(self.delivery_crew_group)
