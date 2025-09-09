@@ -2,7 +2,7 @@ from base_test_utils import BaseAPITestCase
 from endpoints import MANAGERS
 
 class ManagersPermissionTests(BaseAPITestCase):
-    def test_authenticated_and_authorized_manager_access(self):
+    def test_manager_views_list_of_users_in_manager_group(self):
         self.add_user_to_manager_group(self.user1)
         token = self.get_auth_token()
         self.authenticate_client(token)
