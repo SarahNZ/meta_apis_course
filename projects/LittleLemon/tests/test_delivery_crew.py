@@ -100,3 +100,37 @@ class DeliveryCrewGroupTests(BaseAPITestCase):
         self.client.logout()
         response = self.client.delete(DELIVERY_CREW, {"username": "nonexistentuser"}, format = "json")
         self.assertEqual(response.status_code, 401) # Should return 401 Unauthenticated # type: ignore
+        
+    # === Delivery Crew Input Validation Tests ===
+
+    def test_add_user_to_delivery_crew_missing_username(self):
+        response = self.client.post(DELIVERY_CREW, {}, format="json")
+        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
+
+    def test_add_user_to_delivery_crew_empty_username(self):
+        response = self.client.post(DELIVERY_CREW, {"username": ""}, format="json")
+        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
+
+    def test_add_user_to_delivery_crew_nonexistent_username(self):
+        response = self.client.post(DELIVERY_CREW, {"username": "nonexistentuser"}, format="json")
+        self.assertEqual(response.status_code, 404)  # Not Found # type: ignore
+
+    def test_add_user_to_delivery_crew_invalid_field_name(self):
+        response = self.client.post(DELIVERY_CREW, {"user": self.user2.username}, format="json")
+        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
+
+    def test_remove_user_from_delivery_crew_missing_username(self):
+        response = self.client.delete(DELIVERY_CREW, {}, format="json")
+        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
+
+    def test_remove_user_from_delivery_crew_empty_username(self):
+        response = self.client.delete(DELIVERY_CREW, {"username": ""}, format="json")
+        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
+
+    def test_remove_user_from_delivery_crew_nonexistent_username(self):
+        response = self.client.delete(DELIVERY_CREW, {"username": "nonexistentuser"}, format="json")
+        self.assertEqual(response.status_code, 404)  # Not Found # type: ignore
+
+    def test_remove_user_from_delivery_crew_invalid_field_name(self):
+        response = self.client.delete(DELIVERY_CREW, {"user": self.user2.username}, format="json")
+        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
