@@ -43,9 +43,10 @@ See endpoints_lst for other relevant Djoser user authentication endpoints
 - Run server, and test that superuser can create a login token via BrowsableAPI (/auth/token/login/)
 "auth_token": "3a8dffd5dfb0e37042bce82b0266fcdff786d96a" ✅
 
-# INSTALL PYTEST AND PYTEST-DJANGO ✅
+# INSTALL PYTEST ✅
 - Install pytest (pipenv install pytest)
 - Install pytest-django (pipenv install pytest-django)
+- Install pytest-cov 
 - Create a new directory "tests" one level down from the top-level project directory
 - Create a "pytest.ini" file containing
     [pytest]
@@ -119,7 +120,7 @@ CREATE TEST USERS AND GROUPS ✅
         - Manager can add users to the DC group ✅
             POST /api/groups/delivery-crew/users with manager token assigns user in the payload to the manager group
                 and return 201 - Created code
-            - Test valid/invalid/blank input - TODO
+            - Test valid/invalid/blank input ✅
         - Managers can delete users from the DC group ✅
             DELETE /api/groups/delivery-crew/users/{userId} - return 200 - Success,
             or 404 Not found if user did not exist

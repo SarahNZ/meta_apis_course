@@ -16,6 +16,7 @@ djangorestframework = "*"
 djoser = "*"
 pytest = "*"
 pytest-django = "*"
+pytest-cov = "*"
 
 [dev-packages]
 

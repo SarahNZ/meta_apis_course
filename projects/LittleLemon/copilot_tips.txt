@@ -1,0 +1,8 @@
+To dismiss/reject GitHub Copilot's inline suggestion, you can press:
+
+Esc key, or
+Alt+] (Windows/Linux)
+These will make the current suggestion disappear without accepting it. If you want to see different suggestions, you can use:
+
+Alt+[ or Alt+] to cycle through alternative suggestions
+Ctrl+Enter to see all suggestions in a separate list
