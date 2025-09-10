@@ -5,7 +5,7 @@ The admin can add menu items
 The admin can add categories
 Managers can log in (and get access token) (POST /auth/token/login/) ✅ 
 Managers can update the item of the day
-Managers can assign users to the delivery crew
+Managers can assign users to the delivery crew ✅ 
 Managers can assign orders to the delivery crew
 The delivery crew can access orders assigned to them
 The delivery crew can update an order as delivered

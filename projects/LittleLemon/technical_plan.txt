@@ -112,18 +112,18 @@ CREATE TEST USERS AND GROUPS ✅
             or 404 Not found if user did not exist
         - Users that aren't managers (or unauthenticated users) can't add ✅ or remove users from the Managers group ✅
         
-        * DELIVERY CREW GROUP
+        * DELIVERY CREW GROUP ✅
             - Manager can view a list of all the users in the Delivery Crew group ✅
             GET /api/groups/delivery-crew/users
         - Check unauthenticated and non-Manager users (Customers, Delivery Crew) can't view a list of all users in the DC group ✅
-        - Manager can add users to the DC group - up to here :)
+        - Manager can add users to the DC group ✅
             POST /api/groups/delivery-crew/users with manager token assigns user in the payload to the manager group
                 and return 201 - Created code
-            - Check valid/invalid/blank input
-        - Managers can delete users from the DC group
+            - Test valid/invalid/blank input - TODO
+        - Managers can delete users from the DC group ✅
             DELETE /api/groups/delivery-crew/users/{userId} - return 200 - Success,
             or 404 Not found if user did not exist
-        - Users that aren't managers (or unauthenticated users) can't add or remove users from the Delivery Crew group
+        - Users that aren't managers (or unauthenticated users) can't add or remove users from the Delivery Crew group ✅
 
     * ALL AUTHENTICATED USERS CAN VIEW ALL MENU ITEMS
         - Customers, delivery crew and managers can view all menu items

@@ -24,6 +24,9 @@ If you add a msg parameter to the assertion. E.g. "self.assertIn('auth_token', r
 
 TEST DB/TRANSACTIONS
 In Django's test framework, each test method runs in its own isolated transaction and uses a separate test database that is reset for each test class.
+
+USEFUL COMMAND
+pytest tests/test_api.py -v --tb=short --maxfail=1 --disable-warnings   
 '''
 
 class BaseAPITestCase(APITestCase):
