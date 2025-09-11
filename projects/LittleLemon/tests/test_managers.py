@@ -1,4 +1,4 @@
-from base_test_utils import BaseAPITestCase
+from base_test import BaseAPITestCase
 from django.contrib.auth.models import Group, User
 from endpoints import USERS, MANAGERS 
 

@@ -1,4 +1,4 @@
-from base_test_utils import BaseAPITestCase
+from base_test import BaseAPITestCase
 from endpoints import LOGIN
 
 class AuthTests(BaseAPITestCase):

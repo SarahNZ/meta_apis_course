@@ -1,3 +1,4 @@
+import json
 from django.contrib.auth.models import User, Group
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
@@ -30,6 +31,9 @@ pytest tests/test_api.py -v --tb=short --maxfail=1 --disable-warnings
 '''
 
 class BaseAPITestCase(APITestCase):
+    
+    DEBUG_JSON = True 
+    
     def setUp(self):
         self.client = APIClient()
         
@@ -44,7 +48,8 @@ class BaseAPITestCase(APITestCase):
         # Create Delivery Crew group
         self.delivery_crew_group, _ = Group.objects.get_or_create(name="Delivery Crew")   # ", _" avoids a common bug
 
-
+    #=== USER SETUP ===
+    
     def get_auth_token(self, username=None, password=None):
         """
         Logs in a user and returns Djoser token
@@ -86,3 +91,14 @@ class BaseAPITestCase(APITestCase):
         user = user or self.user1
         user.is_staff = True
         user.save()
+        
+    #=== TEST SETUP ===
+    
+    def print_json(self, response):
+        """
+        Pretty-print the JSON content of a DRF response.
+        Only prints if DEBUG_JSON is True.
+        """
+        if self.DEBUG_JSON:
+            print("\nJSON Response:")
+            print(json.dumps(response.json(), indent = 2))

@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User, Group
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -71,6 +72,9 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     permission_classes = [IsStaffOrReadOnly]  
+    
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['category__title']
     
 # === Custom user views (the rest are handled by Djsoer) ===
     

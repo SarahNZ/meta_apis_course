@@ -29,10 +29,17 @@ TECHNICAL PLAN ✅ ❌
         }
     }
 
-# INSTALL AND CONFIGURE django-filter  
+# INSTALL AND CONFIGURE django-filter ✅
 - pip install django-filter
 - Configure in settings.py
-
+    REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
+    }
 
 # CREATE SUPERUSER AND CHECK ADMIN PORTAL WORKING ✅
 - Create superuser (python manage.py createsuperuser) ✅
@@ -50,7 +57,7 @@ TECHNICAL PLAN ✅ ❌
 - View the list of users at /auth/users ✅
 See endpoints_lst for other relevant Djoser user authentication endpoints
 
-# IMPLEMENT DRF'S TOKEN AUTHENTICATION - in progress
+# IMPLEMENT DRF'S TOKEN AUTHENTICATION ✅
 - Note: Decided to use DRF's simple token authentication system rather than JWT (which is better for bigger projects)
 - Add rest_framework.authtoken to INSTALLED_APPS ✅
 - Run migrations (so authtoken_token table gets created) ✅
@@ -90,7 +97,7 @@ CREATE TEST USERS AND GROUPS ✅
         - users & security (limit permissions to minimum required, block unauthenticated and unauthorized users and unncessary HTTP methods as applicable)
         - models.py (then run the migrations, also register each model to the admin app)
         - views.py (only support HTTP methods that are required, return relevant status code)
-        - serializers (including form validation)
+        - serializers (including form validation and clean data, where necessary)
         - map routes in urls.py (app-level)
         - testing (manual & automated)
 
@@ -153,7 +160,7 @@ CREATE TEST USERS AND GROUPS ✅
             - Add automated tests - TODO
         - Customers and delivery crew can't do other HTTP methods when viewing all menu items
             POST, PUT, PATCH, DELETE /api/menu-items  (Deny access and return 403 - Unauthorised status code)
-        - Customers can filter/view menu items by category
+        - Customers can filter menu items by category 🐬
             I.e. Check auth/not auth, item exists/does not (correct status codes)
         - Customers can search for menu items
             I.e. Check auth/not auth, item exists/does not (correct status codes)

@@ -1,4 +1,4 @@
-from base_test_utils import BaseAPITestCase
+from base_test import BaseAPITestCase
 from endpoints import MENU_ITEMS
 from rest_framework import status
 from LittleLemonAPI.models import Category, MenuItem
@@ -26,6 +26,7 @@ class MenuItemsTests(BaseAPITestCase):
         
     def test_list_auth_user_can_view(self):
         response = self.client.get(MENU_ITEMS)
+        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK) # type: ignore
         all_menu_items = [menu_item.title for menu_item in MenuItem.objects.all()]
         response_menu_items = [menu_item["title"] for menu_item in response.json()] # type: ignore
@@ -35,7 +36,12 @@ class MenuItemsTests(BaseAPITestCase):
     def test_list_anon_user_cannot_view(self):
         self.client.credentials()  # remove authentication
         response = self.client.get(MENU_ITEMS)
+        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED) # type: ignore
+        
+    # def test_list_filter_by_category(self):
+    #     url = f"{MENU_ITEMS}?category__title=Pizza"
+    #     response = self.client.get(url)
        
     # === Detail Menu Item Tests ===
                 
@@ -43,6 +49,7 @@ class MenuItemsTests(BaseAPITestCase):
         margherita = MenuItem.objects.get(title="Margherita")
         url = f"{MENU_ITEMS}{margherita.id}/" # type: ignore
         response = self.client.get(url)
+        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK) # type: ignore
         self.assertEqual(response.json()["title"], margherita.title) # type: ignore
         
@@ -51,4 +58,5 @@ class MenuItemsTests(BaseAPITestCase):
         self.client.credentials()  # remove authentication
         url = f"{MENU_ITEMS}{margherita.id}/" # type: ignore
         response = self.client.get(url)
+        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED) # type: ignore
