@@ -64,8 +64,7 @@ class ManagerGroupTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 403) # Forbidden for non-managers # type: ignore
 
     def test_anonymous_user_cannot_view_all_users_in_manager_group(self):
-        # Unauthenticate the client
-        self.client.logout()
+        self.client.credentials() # remove authentication
         response = self.client.get(MANAGERS)
         self.assertEqual(response.status_code, 401) # Unauthorized for anonymous users # type: ignore
         

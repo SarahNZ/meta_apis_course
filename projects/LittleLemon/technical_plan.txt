@@ -1,6 +1,6 @@
 TECHNICAL PLAN ✅ ❌
 
-# PROJECT & APP SET-UP ✅
+# DJANGO PROJECT & APP SET-UP ✅
 - Create a project directory called “LittleLemon” ✅
 - Inside the project directory, activate the virtual environment. E.g. `pipenv shell`  and install the pipenv dependencies `pipenv install` ✅
 - cd to the new project directory and install Django. E.g. pipenv install django. Check Django is installed using pip show django ✅
@@ -13,6 +13,26 @@ TECHNICAL PLAN ✅ ❌
 - Install DRF (using pipenv install djangorestframework) and add 'rest_framework' to the list of installed apps ✅
 - Run migrations (using python manage.py makemigrations and migrate) to create the db.sqlite3 db ✅
 - Run the server and check you can browse to thelocalhost 8000 port -> Success rocket page should be displayed ✅
+
+# CONFIGURE THROTTLING ✅
+- For authenticated and unauthenticated users: 5 calls per minute ✅
+- The API only allows 5 calls per minute, then no more, and then allow more calls after a minute
+- Add default throttling classes and rates to the project settings.py. I.e. 
+    REST_FRAMEWORK = {
+        'DEFAULT_THROTTLE_CLASSES': [
+            'rest_framework.throttling.AnonRateThrottle',
+            'rest_framework.throttling.UserRateThrottle',
+        ],
+        'DEFAULT_THROTTLE_RATES': { # per client across the whole API
+            'anon': '5/minute', 
+            'user': '5/minute',
+        }
+    }
+
+# INSTALL AND CONFIGURE django-filter  
+- pip install django-filter
+- Configure in settings.py
+
 
 # CREATE SUPERUSER AND CHECK ADMIN PORTAL WORKING ✅
 - Create superuser (python manage.py createsuperuser) ✅
@@ -130,6 +150,7 @@ CREATE TEST USERS AND GROUPS ✅
         - Customers, delivery crew and managers can view all menu items at once ✅
             GET only /api/menu-items (return 200 ok code)
             I.e. Check auth/not auth ✅
+            - Add automated tests - TODO
         - Customers and delivery crew can't do other HTTP methods when viewing all menu items
             POST, PUT, PATCH, DELETE /api/menu-items  (Deny access and return 403 - Unauthorised status code)
         - Customers can filter/view menu items by category
@@ -139,7 +160,7 @@ CREATE TEST USERS AND GROUPS ✅
         - Customers can sort menu items by price
             - valid/invalid search criteria
         - Customers can paginate menu items
-        - Customers, delivery crew and managers can view a single menu item  
+        - Customers, delivery crew and managers can view a single menu item ✅
             GET /api/menu-items/{menuItem}
         - Customers and delivery crew can't update (partially or fully) or delete a menu item
             POST, PUT, PATCH, DELETE /api/menu-items/{menuItem}  (Deny access and return 403 - Unauthorised status code)
@@ -234,10 +255,6 @@ CREATE TEST USERS AND GROUPS ✅
                 PATCH /api/orders/{orderId}
             - DC can't update any other fields of an order
             - DC can't update the status of an order not assigned to the DC
-
-# IMPLEMENT THROTTLING
-- For authenticated and unauthenticated users: 5 calls per minute ✅
-- The API only allows 5 calls per minute, then no more, and then allow more calls after a minute
 
 # IMPLEMENT PAGINATION
 - Make sure users can paginate relevant endpoints
