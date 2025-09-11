@@ -11,7 +11,7 @@ To use these tests, install pytest and pytest-django first (using pipenv)
 COMMANDS TO RUN TESTS
 - To run all the tests in the project use "pytest tests/ -v" from the project-level directory
 - To run all the tests in a single test file use e.g. "pytest tests/test_api.py -v"
-- To run one method such as the login test use "pytest tests/test_api.py::UserAPITestCase::test_login -v"
+- To run one test (method) such as the login test use "pytest tests/test_api.py::UserAPITestCase::test_login -v"
 
 FLAGS
 -v (verbose) shows each test name and result in the terminal output
@@ -20,14 +20,14 @@ FLAGS
 --disable-warning hides warning messages
 -s to see print() output in the terminal 
 
-PRINT JSON RESPONSE
-If you add a msg parameter to the assertion. E.g. "self.assertIn('auth_token', response.json(), msg=f"Response JSON: {response.json()}") "
-
 TEST DB/TRANSACTIONS
 In Django's test framework, each test method runs in its own isolated transaction and uses a separate test database that is reset for each test class.
 
-USEFUL COMMAND
-pytest tests/test_api.py -v --tb=short --maxfail=1 --disable-warnings   
+USEFUL COMBINED TEST RUN COMMAND
+pytest -s tests/test_api.py -v --tb=short --maxfail=1 --disable-warnings 
+
+RUN ONLY THE TESTS THAT FAILED DURING THE LAST TEST RUN
+pytest -s --lf -v --maxfail=1
 '''
 
 class BaseAPITestCase(APITestCase):

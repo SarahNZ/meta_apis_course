@@ -74,7 +74,9 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrReadOnly]  
     
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['category__title']
+    filterset_fields = {
+        'category__title': ['exact', 'icontains']
+    }
     
 # === Custom user views (the rest are handled by Djsoer) ===
     

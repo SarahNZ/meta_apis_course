@@ -160,9 +160,10 @@ CREATE TEST USERS AND GROUPS ✅
             - Add automated tests - TODO
         - Customers and delivery crew can't do other HTTP methods when viewing all menu items
             POST, PUT, PATCH, DELETE /api/menu-items  (Deny access and return 403 - Unauthorised status code)
-        - Customers can filter menu items by category 🐬
-            I.e. Check auth/not auth, item exists/does not (correct status codes)
-        - Customers can search for menu items
+        - Customers can filter menu items by category ✅
+            I.e. Check auth/not auth, item exists/does not (correct status codes) ✅
+            - What if the request has has invalid category? 🐬
+        - Customers can search for menu items 
             I.e. Check auth/not auth, item exists/does not (correct status codes)
         - Customers can sort menu items by price
             - valid/invalid search criteria

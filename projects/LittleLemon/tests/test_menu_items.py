@@ -8,14 +8,18 @@ class MenuItemsTests(BaseAPITestCase):
         super().setUp()
         
         """
-        Create category and menu items for view tests. Don't delete or modify them
+        Create category and menu items for read access only. Don't delete or modify them
         """
-        self.category = Category.objects.create(slug="pizza", title="Pizza")
+        self.category_pizza = Category.objects.create(slug="pizza", title="Pizza")
+        self.category_dessert = Category.objects.create(slug="pizza", title="Dessert")
         MenuItem.objects.create(
-            title="Margherita", price=10, featured=True, category=self.category
+            title="Margherita", price=10, featured=True, category=self.category_pizza
         )
         MenuItem.objects.create(
-            title="Pepperoni", price=12, featured=False, category=self.category
+            title="Pepperoni", price=12, featured=False, category=self.category_pizza
+        )
+        MenuItem.objects.create(
+            title="Apple Pie", price=11, featured=False, category=self.category_dessert
         )
         
         # Authenticate client as default test user (self.user1)
@@ -39,9 +43,21 @@ class MenuItemsTests(BaseAPITestCase):
         self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED) # type: ignore
         
-    # def test_list_filter_by_category(self):
-    #     url = f"{MENU_ITEMS}?category__title=Pizza"
-    #     response = self.client.get(url)
+    def test_list_filter_by_category(self):
+        url = f"{MENU_ITEMS}?category__title=Pizza"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK) # type: ignore
+        
+        pizza_items = [menu_item.title for menu_item in MenuItem.objects.filter(category__title = "Pizza")]
+        non_pizza_items = [menu_item.title for menu_item in MenuItem.objects.exclude(category__title = "Pizza")]
+        response_titles = [menu_item["title"] for menu_item in response.json()] # type: ignore
+        
+        for item in pizza_items:
+            self.assertIn(item, response_titles)
+            
+        for item in non_pizza_items:
+            self.assertNotIn(item, response_titles)
        
     # === Detail Menu Item Tests ===
                 
