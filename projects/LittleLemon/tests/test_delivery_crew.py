@@ -51,6 +51,10 @@ class DeliveryCrewGroupTests(BaseAPITestCase):
         self.assertEqual(response.status_code, 201) # type: ignore
         self.assertTrue(self.user2.groups.filter(name = "Delivery Crew").exists())
         
+    def test_unsupported_http_methods_for_delivery_crew_endpoint_return_405(self):
+        response = self.client.put(DELIVERY_CREW, {"username": self.user2.username}, format = "json")
+        self.assertEqual(response.status_code, 405) # type: ignore
+        
     def test_unauthorized_authenticated_user_cannot_add_user_to_delivery_crew_group(self):
         # Create and authenticate a non-manager user
         User.objects.create_user(username="unauthorized", password=self.password)

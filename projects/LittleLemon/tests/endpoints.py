@@ -23,8 +23,16 @@ users/reset_username_confirm/
 /api/users/{userId}/groups
 
 ## MENU-ITEMS ENDPOINTS
+Note: All require authentication (IsAuthenticated)
 /api/menu-items (GET, Role = Customer, delivery crew, lists all menu items, return a 200 ok code)
 /api/menu-items (POST, PUT, PATCH, DELETE, Role = customer, delivery crew)
+
+GET /api/menu-items/ → list menu items
+POST /api/menu-items/ → create menu item
+GET /api/menu-items/{id}/ → retrieve single item
+PUT /api/menu-items/{id}/ → update item
+PATCH /api/menu-items/{id}/ → partial update
+DELETE /api/menu-items/{id}/ → delete item
 
 # CART ENDPOINTS
 /api/users/{userId}/cart

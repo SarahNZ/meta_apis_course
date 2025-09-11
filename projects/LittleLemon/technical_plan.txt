@@ -126,10 +126,10 @@ CREATE TEST USERS AND GROUPS ✅
             or 404 Not found if user did not exist
         - Users that aren't managers (or unauthenticated users) can't add or remove users from the Delivery Crew group ✅
 
-    * ALL AUTHENTICATED USERS CAN VIEW ALL MENU ITEMS
-        - Customers, delivery crew and managers can view all menu items
+    * ALL AUTHENTICATED USERS CAN VIEW ALL MENU ITEMS - in progress
+        - Customers, delivery crew and managers can view all menu items at once ✅
             GET only /api/menu-items (return 200 ok code)
-            I.e. Check auth/not auth, item exists/does not (correct status codes)
+            I.e. Check auth/not auth ✅
         - Customers and delivery crew can't do other HTTP methods when viewing all menu items
             POST, PUT, PATCH, DELETE /api/menu-items  (Deny access and return 403 - Unauthorised status code)
         - Customers can filter/view menu items by category
@@ -236,21 +236,12 @@ CREATE TEST USERS AND GROUPS ✅
             - DC can't update the status of an order not assigned to the DC
 
 # IMPLEMENT THROTTLING
-- For authenticated and unauthenticated users
-To 5 calls per minute
-- Check all relevant endpoint calls allow 5 calls per minute, then no more, and then allow more calls after a minute
+- For authenticated and unauthenticated users: 5 calls per minute ✅
+- The API only allows 5 calls per minute, then no more, and then allow more calls after a minute
 
 # IMPLEMENT PAGINATION
 - Make sure users can paginate relevant endpoints
 
-# EXECUTE TEST CASES TO ENSURE BUSINESS REQUIREMENTS HAVE BEEN MET  
-See test_little_lemon_api Google sheet
-Link: https://docs.google.com/spreadsheets/d/1QeKFUfuDS9zleyRI7xJ-eHNPRXbaPjJ0O8urqq6ghu4/edit?gid=740715841#gid=740715841
-- And add extra test cases, as needed for testing authorization, validation and negative test cases/bad input
+# ENSURE BUSINESS REQUIREMENTS HAVE BEEN MET  
 
 # SUBMIT ASSIGNMENT
-
-# (EXTRA): CREATE AUTOMATED API TESTS USING TOOL LIKE DJANGO, POSTMAN OR RESTASSURE
-
-
-

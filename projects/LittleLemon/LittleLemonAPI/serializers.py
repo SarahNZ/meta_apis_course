@@ -1,13 +1,47 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from django.contrib.auth.models import User
-from .models import MenuItem
+from .models import Category, MenuItem
+import bleach
 
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'slug', 'title']
+        
+class MenuItemSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only = True)
+    category_id = serializers.IntegerField(write_only = True)
+    
+    title = serializers.CharField(
+        max_length = 255,
+        validators = [UniqueValidator(queryset = MenuItem.objects.all())]
+    )
+    
+    def validate_title(self, value):
+        return bleach.clean(value)
+    
+    def validate_price(self, value):
+        if value < 0:
+            raise serializers.ValidationError('Price cannot be negative')
+        return value
+    
+    def create(self, validated_data):
+        category_id = validated_data.pop('category_id')
+        category = Category.objects.get(id = category_id)
+        return MenuItem.objects.create(category = category, **validated_data)
+    
+    def update(self, instance, validated_data):
+        if 'category_id' in validated_data:
+            category_id = validated_data.pop('category_id')
+            instance.category = Category.objects.get(id = category_id)
+        return super().update(instance, validated_data)
+    
+    class Meta:
+        model = MenuItem
+        fields = ["id", "title", "price", "featured", "category", "category_id"]
+        
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User  
         fields = ["id", "username", "email"]
-        
-class MenuItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MenuItem
-        fields = ["id", "title", "price", "featured", "category"]
