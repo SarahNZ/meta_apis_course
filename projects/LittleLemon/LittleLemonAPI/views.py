@@ -4,12 +4,16 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status, viewsets
+from rest_framework import filters, status, viewsets
+from .filters import MenuItemFilter
 from .models import MenuItem
+from .pagination import CustomPageNumberPagination
 from .permissions import IsStaffOrReadOnly
 from .serializers import MenuItemSerializer, UserSerializer
 
-# === Delivery Crew views ===
+# === User Management Views ===
+
+# Note: A lot of the user management functionality is handled by Django and Djoser (token-based authentication)
     
 # Endpoint /api/groups/delivery-crew/users/
 @api_view(['GET','POST', 'DELETE'])
@@ -34,8 +38,6 @@ def delivery_crew(request):
 
     # Other HTTP Methods such as PUT and PATCH methods are not supported
     return Response({"message": "error"}, status.HTTP_400_BAD_REQUEST)
-    
-# === Manager views ===
 
 # Endpoint /api/groups/manager/users/
 @api_view(['GET','POST', 'DELETE'])
@@ -64,22 +66,7 @@ def managers(request):
 
     # Unsupported HTTP methods will return a 405 (and not hit the code below)
     return Response({"message": "error"}, status.HTTP_400_BAD_REQUEST)
-    
-# === Menu Item views ===
 
-# Endpoint /api/menu-items/
-class MenuItemsViewSet(viewsets.ModelViewSet):
-    queryset = MenuItem.objects.all()
-    serializer_class = MenuItemSerializer
-    permission_classes = [IsStaffOrReadOnly]  
-    
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = {
-        'category__title': ['exact', 'icontains']
-    }
-    
-# === Custom user views (the rest are handled by Djsoer) ===
-    
 # Endpoint /api/users/
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdminUser])
@@ -87,3 +74,16 @@ def users(request):
     all_users = User.objects.all()
     serializer = UserSerializer(all_users, many = True)
     return Response(serializer.data)
+    
+# === Menu Item Views ===
+
+# Endpoint /api/menu-items/
+class MenuItemsViewSet(viewsets.ModelViewSet):
+    queryset = MenuItem.objects.all()
+    serializer_class = MenuItemSerializer
+    permission_classes = [IsStaffOrReadOnly] 
+    pagination_class = CustomPageNumberPagination 
+    
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['title']
+    filterset_class = MenuItemFilter

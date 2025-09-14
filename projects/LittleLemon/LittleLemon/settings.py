@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'djoser',
     'rest_framework.authtoken',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -131,24 +132,22 @@ DJOSER = {
 }
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    # Note: Session-based authentication is not set up for the Browsable API, as it conflicts with the token-based auth that Djoser uses
+    'DEFAULT_AUTHENTICATION_CLASSES': [        
         'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
-    '''
-    The default number of items per page for all list endpoints in this project.
-    Clients can request a particular page, including a specific page number, previous or next page.
-    E.g. 
-        ?page=<number> → which page to fetch
-        Example: /api/menu-items/?page=2
-    '''
+    # The default number of items per page for all list endpoints in this project.
+    # E.g. ?page_size=2 → will return 2 items per page with "count", "next" and "previous" metadata
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 2, # number of items per page (for all list endpoints by default)
+    'PAGE_SIZE': 2,
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
@@ -156,5 +155,6 @@ REST_FRAMEWORK = {
     # 'DEFAULT_THROTTLE_RATES': { # per client across the whole API
     #     'anon': '200/minute', 
     #     'user': '200/minute',
-    # }
+    # },
+    'SEARCH_PARAM': 'search',
 }

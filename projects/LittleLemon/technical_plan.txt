@@ -166,7 +166,7 @@ CREATE TEST USERS AND GROUPS ✅
             I.e. Check auth/not auth, item exists/does not (correct status codes)
         - Customers can sort menu items by price - TO DO
             - valid/invalid search criteria
-        - Customers can paginate menu items - TO DO
+        - Customers can paginate menu items ✅
         - Customers, delivery crew and managers can view a single menu item ✅
             GET /api/menu-items/{menuItem}
         - Customers and delivery crew can't update (partially or fully) or delete a menu item ✅
@@ -176,8 +176,7 @@ CREATE TEST USERS AND GROUPS ✅
         - Managers can add, edit and remove menu items. I.e. ✅
             - Create a new menu item POST /api/menu-items/ (and return 201 - Created code) ✅
             - Update a single menu item PUT, PATCH /api/menu-items/{menuItem} ✅
-                - Requirements say "Managers can update the item of the day". 
-                Do we need to be able to label the item of the day? How do we identify the item of the day? Check this
+                - Requirements say "Managers can update the item of the day" (I.e. featured = True/False). 
             - Delete a single menu item DELETE /api/menu-items/{menuItem} ✅
             - Check valid/invalid/blank input and when item does not exist ✅
         - Users that aren't managers can't add, edit or remove menu items ✅

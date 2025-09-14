@@ -2,6 +2,7 @@ from base_test import BaseAPITestCase
 from endpoints import MENU_ITEMS
 from rest_framework import status
 from LittleLemonAPI.models import Category, MenuItem
+from LittleLemon.settings import REST_FRAMEWORK
 
 
 class MenuItemsTests(BaseAPITestCase):
@@ -21,7 +22,7 @@ class MenuItemsTests(BaseAPITestCase):
         token = self.get_auth_token()
         self.authenticate_client(token)
 
-    # === List / Filter Tests ===
+    # === View List Tests ===
     def test_list_auth_user_can_view(self):
         response = self.client.get(MENU_ITEMS)
         self.print_json(response)
@@ -35,6 +36,8 @@ class MenuItemsTests(BaseAPITestCase):
         response = self.client.get(MENU_ITEMS)
         self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
+        
+    # === Filter List Tests ===
 
     def test_list_filter_by_category_exact_match(self):
         url = f"{MENU_ITEMS}?category__title=Pizza"
@@ -62,8 +65,66 @@ class MenuItemsTests(BaseAPITestCase):
         self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         self.assertEqual(response.json(), [])   # type:ignore
+        
+    # === Paginate List Tests === 
+    
+    def test_list_default_pagination(self):
+        page_size = REST_FRAMEWORK['PAGE_SIZE']
+        url = f"{MENU_ITEMS}?page_size={page_size}"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        response_titles = [item["title"] for item in response.json()["results"]] # Need to get the nested results # type:ignore
+        expected_titles = list(MenuItem.objects.all().order_by("id")[:page_size].values_list("title", flat = True))
+        self.assertEqual(response_titles, list(expected_titles))
+        
+    def test_list_client_sets_pagination(self):
+        page_size = 1
+        url = f"{MENU_ITEMS}?page_size={page_size}"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        response_titles = [item["title"] for item in response.json()["results"]] # Need to get the nested results # type:ignore
+        expected_titles = list(MenuItem.objects.all().order_by("id")[:page_size].values_list("title", flat = True))
+        self.assertEqual(response_titles, list(expected_titles))
+        
+    # Note: If the client tries to set a page_size that is 0 or negative, client spells the page_size criteria wrong or does not include a value, 
+    # the response uses the default global pagination setting. This is handled by DRF, so not testing it explicitly here.
+        
+    # === Search List Tests ===
+    
+    def test_list_search_exact_match(self):
+        criteria = "green salad"
+        url = f"{MENU_ITEMS}?search={criteria}"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        response_titles = [item["title"] for item in response.json()['results']]   # type:ignore
+        expected_titles = [m.title for m in MenuItem.objects.filter(title__icontains={criteria})]
+        for title in expected_titles:
+            self.assertIn(title, response_titles)
+
+    def test_list_search_partial_match(self):
+        criteria = "salad"
+        url = f"{MENU_ITEMS}?search={criteria}"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        response_titles = [item["title"] for item in response.json()['results']]   # type:ignore
+        expected_titles = [m.title for m in MenuItem.objects.filter(title__icontains={criteria})]
+        for title in expected_titles:
+            self.assertIn(title, response_titles)
+
+    def test_list_search_no_matches(self):
+        criteria = "xyz"
+        url = f"{MENU_ITEMS}?search={criteria}"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        self.assertEqual(response.json()['results'], [])   # type:ignore
 
     # === Detail Tests ===
+    
     def test_detail_auth_user_can_view(self):
         item = MenuItem.objects.get(title="Margherita")
         url = f"{MENU_ITEMS}{item.id}/" # type:ignore

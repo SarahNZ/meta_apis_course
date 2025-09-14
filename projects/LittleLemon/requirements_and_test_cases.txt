@@ -2,17 +2,17 @@
 Admin can assign users to the manager group (POST /api/groups/manager/users/) ✅
 Admin can access the manager group with an admin token (GET /api/groups/manager/users/) ✅
 Admin can add categories - in progress :)
-Admin can add menu items - in progress (as cannot add menu items without categories)
+Admin can add menu items ✅
 Managers can log in (and get access token) (POST /auth/token/login/) ✅ 
-Managers can update the item of the day
+Managers can update the item of the day ✅
 Managers can assign users to the delivery crew ✅ 
 Managers can assign orders to the delivery crew
 Customers can register (/auth/users/)✅
 Customers can log in using their username and password and get access tokens (POST /auth/token/login)✅
-Customers can browse all categories
+Customers can browse all categories ✅
 Customers can browse all the menu items at once ✅
-Customers can browse menu items by category
-Customers can paginate menu items
+Customers can browse menu items by category ✅
+Customers can paginate menu items ✅
 Customers can sort menu items by price
 Customers can add menu items to the cart
 Customers can access previously added items in the cart
