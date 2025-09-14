@@ -28,6 +28,8 @@ pytest -s tests/test_api.py -v --tb=short --maxfail=1 --disable-warnings
 
 RUN ONLY THE TESTS THAT FAILED DURING THE LAST TEST RUN
 pytest -s --lf -v --maxfail=1
+
+TO VIEW RESPONSE JSON ADD "self.print_json(response)" to the test
 '''
 
 class BaseAPITestCase(APITestCase):

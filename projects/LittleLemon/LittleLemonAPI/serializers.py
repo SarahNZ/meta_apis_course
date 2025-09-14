@@ -17,6 +17,10 @@ class MenuItemSerializer(serializers.ModelSerializer):
         max_length = 255,
         validators = [UniqueValidator(queryset = MenuItem.objects.all())]
     )
+        
+    class Meta:
+        model = MenuItem
+        fields = ["id", "title", "price", "featured", "category", "category_id"]
     
     def validate_title(self, value):
         return bleach.clean(value)
@@ -34,12 +38,11 @@ class MenuItemSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         if 'category_id' in validated_data:
             category_id = validated_data.pop('category_id')
-            instance.category = Category.objects.get(id = category_id)
+            try:
+                instance.category = Category.objects.get(id = category_id)
+            except Category.DoesNotExist:
+                raise serializers.ValidationError({"category_id": "Invalid category id"})
         return super().update(instance, validated_data)
-    
-    class Meta:
-        model = MenuItem
-        fields = ["id", "title", "price", "featured", "category", "category_id"]
         
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

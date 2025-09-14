@@ -157,29 +157,28 @@ CREATE TEST USERS AND GROUPS ✅
         - Customers, delivery crew and managers can view all menu items at once ✅
             GET only /api/menu-items (return 200 ok code)
             I.e. Check auth/not auth ✅
-            - Add automated tests - TODO
         - Customers and delivery crew can't do other HTTP methods when viewing all menu items
             POST, PUT, PATCH, DELETE /api/menu-items  (Deny access and return 403 - Unauthorised status code)
         - Customers can filter menu items by category ✅
             I.e. Check auth/not auth, item exists/does not (correct status codes) ✅
-            - What if the request has has invalid category? 🐬
-        - Customers can search for menu items 
+            - What if the request has an invalid category? 200 ✅
+        - Customers can search for menu items - TO DO
             I.e. Check auth/not auth, item exists/does not (correct status codes)
-        - Customers can sort menu items by price
+        - Customers can sort menu items by price - TO DO
             - valid/invalid search criteria
-        - Customers can paginate menu items
+        - Customers can paginate menu items - TO DO
         - Customers, delivery crew and managers can view a single menu item ✅
             GET /api/menu-items/{menuItem}
-        - Customers and delivery crew can't update (partially or fully) or delete a menu item
+        - Customers and delivery crew can't update (partially or fully) or delete a menu item ✅
             POST, PUT, PATCH, DELETE /api/menu-items/{menuItem}  (Deny access and return 403 - Unauthorised status code)
     
     * CATEGORY MANAGEMENT
-        - Managers can add categories
-        - Anonymous users and non-Manager users can't add categories
-        - Customers can view all categories
-            - anonymous users can't
+        - Managers can add categories - TO DO
+        - Anonymous users and non-Manager users can't add categories - TO DO
+        - Customers can view all categories - TO DO
+            - anonymous users can't - TO DO
 
-    * MENU ITEM MANAGEMENT  
+    * MENU ITEM MANAGEMENT ✅
         - Managers can add, edit and remove menu items. I.e. 
             - Create a new menu item POST /api/menu-items/ (and return 201 - Created code)
             - Update a single menu item PUT, PATCH /api/menu-items/{menuItem}

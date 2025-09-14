@@ -1,0 +1,2 @@
+Alt + -> Go forward
+Alt + <- Go back

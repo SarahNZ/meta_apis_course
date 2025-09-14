@@ -3,76 +3,323 @@ from endpoints import MENU_ITEMS
 from rest_framework import status
 from LittleLemonAPI.models import Category, MenuItem
 
+
 class MenuItemsTests(BaseAPITestCase):
     def setUp(self):
         super().setUp()
-        
-        """
-        Create category and menu items for read access only. Don't delete or modify them
-        """
+
+        # Categories
         self.category_pizza = Category.objects.create(slug="pizza", title="Pizza")
-        self.category_dessert = Category.objects.create(slug="pizza", title="Dessert")
-        MenuItem.objects.create(
-            title="Margherita", price=10, featured=True, category=self.category_pizza
-        )
-        MenuItem.objects.create(
-            title="Pepperoni", price=12, featured=False, category=self.category_pizza
-        )
-        MenuItem.objects.create(
-            title="Apple Pie", price=11, featured=False, category=self.category_dessert
-        )
-        
-        # Authenticate client as default test user (self.user1)
+        self.category_dessert = Category.objects.create(slug="dessert", title="Dessert")
+
+        # Menu items
+        MenuItem.objects.create(title="Margherita", price=10, featured=True, category=self.category_pizza)
+        MenuItem.objects.create(title="Pepperoni", price=12, featured=False, category=self.category_pizza)
+        MenuItem.objects.create(title="Apple Pie", price=11, featured=False, category=self.category_dessert)
+
+        # Authenticate client as default user
         token = self.get_auth_token()
         self.authenticate_client(token)
-        
-    # === List Menu Items Tests ===
-        
+
+    # === List / Filter Tests ===
     def test_list_auth_user_can_view(self):
         response = self.client.get(MENU_ITEMS)
         self.print_json(response)
-        self.assertEqual(response.status_code, status.HTTP_200_OK) # type: ignore
-        all_menu_items = [menu_item.title for menu_item in MenuItem.objects.all()]
-        response_menu_items = [menu_item["title"] for menu_item in response.json()] # type: ignore
-        for menu_item in all_menu_items:
-            self.assertIn(menu_item, response_menu_items) 
-            
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        titles = [item["title"] for item in response.json()]    # type:ignore
+        for m in MenuItem.objects.all():
+            self.assertIn(m.title, titles)
+
     def test_list_anon_user_cannot_view(self):
-        self.client.credentials()  # remove authentication
+        self.client.credentials()
         response = self.client.get(MENU_ITEMS)
         self.print_json(response)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED) # type: ignore
-        
-    def test_list_filter_by_category(self):
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
+
+    def test_list_filter_by_category_exact_match(self):
         url = f"{MENU_ITEMS}?category__title=Pizza"
         response = self.client.get(url)
         self.print_json(response)
-        self.assertEqual(response.status_code, status.HTTP_200_OK) # type: ignore
-        
-        pizza_items = [menu_item.title for menu_item in MenuItem.objects.filter(category__title = "Pizza")]
-        non_pizza_items = [menu_item.title for menu_item in MenuItem.objects.exclude(category__title = "Pizza")]
-        response_titles = [menu_item["title"] for menu_item in response.json()] # type: ignore
-        
-        for item in pizza_items:
-            self.assertIn(item, response_titles)
-            
-        for item in non_pizza_items:
-            self.assertNotIn(item, response_titles)
-       
-    # === Detail Menu Item Tests ===
-                
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        response_titles = [item["title"] for item in response.json()]   # type:ignore
+        pizza_items = [m.title for m in MenuItem.objects.filter(category__title="Pizza")]
+        for title in pizza_items:
+            self.assertIn(title, response_titles)
+
+    def test_list_filter_by_category_partial_match(self):
+        url = f"{MENU_ITEMS}?category__title__icontains=Pizz"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        response_titles = [item["title"] for item in response.json()]   # type:ignore
+        pizza_items = [m.title for m in MenuItem.objects.filter(category__title="Pizza")]
+        for title in pizza_items:
+            self.assertIn(title, response_titles)
+
+    def test_list_filter_non_existent_category(self):
+        url = f"{MENU_ITEMS}?category__title=Sushi"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        self.assertEqual(response.json(), [])   # type:ignore
+
+    # === Detail Tests ===
     def test_detail_auth_user_can_view(self):
-        margherita = MenuItem.objects.get(title="Margherita")
-        url = f"{MENU_ITEMS}{margherita.id}/" # type: ignore
+        item = MenuItem.objects.get(title="Margherita")
+        url = f"{MENU_ITEMS}{item.id}/" # type:ignore
         response = self.client.get(url)
-        self.print_json(response)
-        self.assertEqual(response.status_code, status.HTTP_200_OK) # type: ignore
-        self.assertEqual(response.json()["title"], margherita.title) # type: ignore
-        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        self.assertEqual(response.json()["title"], item.title)  # type:ignore
+        self.assertEqual(response.json()["price"], str(item.price))  # type:ignore
+        self.assertEqual(response.json()["featured"], item.featured) # type:ignore
+        self.assertEqual(response.json()['category']['id'], item.category_id)    # type:ignore
+
     def test_detail_anon_user_cannot_view(self):
-        margherita = MenuItem.objects.get(title="Margherita")
-        self.client.credentials()  # remove authentication
-        url = f"{MENU_ITEMS}{margherita.id}/" # type: ignore
+        item = MenuItem.objects.get(title="Margherita")
+        self.client.credentials()
+        url = f"{MENU_ITEMS}{item.id}/" # type:ignore
         response = self.client.get(url)
         self.print_json(response)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED) # type: ignore
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
+
+    # === Create / POST Tests ===
+    def test_auth_admin_user_can_add_menu_item(self):
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        data = {
+            "title": "Tiramisu",
+            "price": 15.0,
+            "featured": False,
+            "category_id": self.category_dessert.id # type:ignore
+        }
+        response = self.client.post(MENU_ITEMS, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED) # type:ignore
+        self.assertTrue(MenuItem.objects.filter(title="Tiramisu").exists()) # type:ignore
+
+    def test_auth_non_staff_user_cannot_add_menu_item(self):
+        self.user1.is_staff = False
+        self.user1.save()
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        data = {"title": "Gelato", "price": 12.0, "featured": False, "category_id": self.category_dessert.id}   # type:ignore
+        response = self.client.post(MENU_ITEMS, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)   # type:ignore
+        self.assertFalse(MenuItem.objects.filter(title="Gelato").exists())
+
+    def test_anon_user_cannot_add_menu_item(self):
+        self.client.credentials()
+        data = {"title": "Panna Cotta", "price": 14.0, "featured": True, "category_id": self.category_dessert.id}   # type:ignore
+        response = self.client.post(MENU_ITEMS, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
+        self.assertFalse(MenuItem.objects.filter(title="Panna Cotta").exists())
+
+    # === Update / PATCH / PUT Tests ===
+
+    def test_auth_admin_user_can_patch_menu_item(self):
+        """
+        Admin/staff user can partially update a menu item via PATCH.
+        """
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+
+        item = MenuItem.objects.create(title="Original Dish", price=10.0, featured=False, category=self.category_dessert)
+
+        data = {"title": "Updated Dish", "price": 15.0, "featured": True}
+        url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
+        response = self.client.patch(url, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        item.refresh_from_db()
+        self.assertEqual(item.title, "Updated Dish")
+        self.assertEqual(item.price, 15.0)
+        self.assertTrue(item.featured)
+
+
+    def test_auth_admin_user_can_put_menu_item(self):
+        """
+        Admin/staff user can fully update a menu item via PUT.
+        """
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+
+        item = MenuItem.objects.create(title="Original Dish", price=10.0, featured=False, category=self.category_dessert)
+
+        data = {
+            "title": "Updated Dish",
+            "price": 20.0,
+            "featured": True,
+            "category_id": self.category_dessert.id  # type:ignore
+        }
+        url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
+        response = self.client.put(url, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        item.refresh_from_db()
+        self.assertEqual(item.title, "Updated Dish")
+        self.assertEqual(item.price, 20.0)
+        self.assertTrue(item.featured)
+
+
+    def test_auth_non_staff_user_cannot_update_menu_item_patch(self):
+        """
+        Authenticated non-staff users should get 403 Forbidden when PATCHing a menu item.
+        """
+        self.user1.is_staff = False
+        self.user1.save()
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+
+        item = MenuItem.objects.create(title="Non-Staff Dish", price=10.0, featured=False, category=self.category_dessert)
+        data = {"price": 99.0}
+        url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
+        response = self.client.patch(url, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  # type:ignore
+        item.refresh_from_db()
+        self.assertEqual(item.price, 10.0)
+
+
+    def test_auth_non_staff_user_cannot_update_menu_item_put(self):
+        """
+        Authenticated non-staff users should get 403 Forbidden when PUTting a menu item.
+        """
+        self.user1.is_staff = False
+        self.user1.save()
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+
+        item = MenuItem.objects.create(title="Non-Staff Dish", price=10.0, featured=False, category=self.category_dessert)
+        data = {
+            "title": "Should Not Update",
+            "price": 50.0,
+            "featured": True,
+            "category_id": self.category_dessert.id  # type:ignore
+        }
+        url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
+        response = self.client.put(url, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  # type:ignore
+        item.refresh_from_db()
+        self.assertEqual(item.title, "Non-Staff Dish")
+
+
+    def test_anon_user_cannot_update_menu_item_patch(self):
+        """
+        Anonymous users cannot PATCH a menu item.
+        """
+        self.client.credentials()
+        item = MenuItem.objects.create(title="Anon Dish", price=10.0, featured=False, category=self.category_dessert)
+        data = {"price": 99.0}
+        url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
+        response = self.client.patch(url, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type:ignore
+        item.refresh_from_db()
+        self.assertEqual(item.price, 10.0)
+
+
+    def test_anon_user_cannot_update_menu_item_put(self):
+        """
+        Anonymous users cannot PUT a menu item.
+        """
+        self.client.credentials()
+        item = MenuItem.objects.create(title="Anon Dish", price=10.0, featured=False, category=self.category_dessert)
+        data = {
+            "title": "Should Not Update",
+            "price": 50.0,
+            "featured": True,
+            "category_id": self.category_dessert.id  # type:ignore
+        }
+        url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
+        response = self.client.put(url, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type:ignore
+        item.refresh_from_db()
+        self.assertEqual(item.title, "Anon Dish")
+    
+
+    # === Update / PATCH / PUT Validation Tests ===
+    def test_patch_menu_item_invalid_price(self):
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        item = MenuItem.objects.create(title="Patch Dish", price=10.0, featured=False, category=self.category_dessert)
+        data = {"price": -7.0}
+        url = f"{MENU_ITEMS}{item.id}/" # type:ignore
+        response = self.client.patch(url, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) # type:ignore
+        self.assertIn("price", response.json()) # type:ignore
+
+    def test_patch_menu_item_invalid_category(self):
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        item = MenuItem.objects.create(title="Patch Dish", price=10.0, featured=False, category=self.category_dessert)
+        data = {"category_id": 9999}
+        url = f"{MENU_ITEMS}{item.id}/" # type:ignore
+        response = self.client.patch(url, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) # type:ignore
+        self.assertIn("category_id", response.json())   # type:ignore
+
+    def test_put_menu_item_duplicate_title(self):
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        item1 = MenuItem.objects.create(title="Dish One", price=10.0, featured=False, category=self.category_dessert)
+        item2 = MenuItem.objects.create(title="Dish Two", price=12.0, featured=True, category=self.category_dessert)
+        data = {"title": "Dish One", "price": 15.0, "featured": True, "category_id": self.category_dessert.id}  # type:ignore
+        url = f"{MENU_ITEMS}{item2.id}/"    # type:ignore
+        response = self.client.put(url, data, format="json")
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) # type:ignore
+        self.assertIn("title", response.json()) # type:ignore
+
+    # === Delete / DELETE Tests ===
+    def test_auth_admin_user_can_delete_menu_item(self):
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        item = MenuItem.objects.create(title="To Delete", price=10.0, featured=False, category=self.category_dessert)
+        url = f"{MENU_ITEMS}{item.id}/" # type:ignore
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type:ignore
+        self.assertFalse(MenuItem.objects.filter(id=item.id).exists())  # type:ignore
+        
+    def test_auth_admin_user_delete_nonexistent_menu_item(self):
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        non_existent_id = 9999  # an ID that does not exist in the test DB
+        url = f"{MENU_ITEMS}{non_existent_id}/"  # type:ignore
+        response = self.client.delete(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)   # type:ignore
+
+    def test_auth_non_staff_user_cannot_delete_menu_item(self):
+        self.user1.is_staff = False
+        self.user1.save()
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        item = MenuItem.objects.create(title="To Delete", price=10.0, featured=False, category=self.category_dessert)
+        url = f"{MENU_ITEMS}{item.id}/" # type:ignore
+        response = self.client.delete(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)   # type:ignore
+        self.assertTrue(MenuItem.objects.filter(id=item.id).exists())   # type:ignore
+
+    def test_anon_user_cannot_delete_menu_item(self):
+        self.client.credentials()
+        item = MenuItem.objects.create(title="To Delete", price=10.0, featured=False, category=self.category_dessert)
+        url = f"{MENU_ITEMS}{item.id}/" # type:ignore
+        response = self.client.delete(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
+        self.assertTrue(MenuItem.objects.filter(id=item.id).exists())   # type:ignore

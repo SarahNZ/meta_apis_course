@@ -1,6 +1,15 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+"""
+To view all of the Category objects, use
+python manage.py shell
+>>> from LittleLemonAPI.models import Category
+>>> Category.objects.values_list("title", flat=True
+... )
+<QuerySet ['Appetizers', 'Desserts', 'Drinks', 'Mains', 'Sides']>
+"""
+
 class Category(models.Model):
     slug = models.SlugField()
     title = models.CharField(max_length = 255, db_index = True)
