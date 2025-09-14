@@ -140,6 +140,15 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
+    '''
+    The default number of items per page for all list endpoints in this project.
+    Clients can request a particular page, including a specific page number, previous or next page.
+    E.g. 
+        ?page=<number> → which page to fetch
+        Example: /api/menu-items/?page=2
+    '''
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 2, # number of items per page (for all list endpoints by default)
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',

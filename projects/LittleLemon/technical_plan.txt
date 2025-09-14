@@ -171,23 +171,22 @@ CREATE TEST USERS AND GROUPS ✅
             GET /api/menu-items/{menuItem}
         - Customers and delivery crew can't update (partially or fully) or delete a menu item ✅
             POST, PUT, PATCH, DELETE /api/menu-items/{menuItem}  (Deny access and return 403 - Unauthorised status code)
-    
+
+    * MENU ITEM MANAGEMENT ✅
+        - Managers can add, edit and remove menu items. I.e. ✅
+            - Create a new menu item POST /api/menu-items/ (and return 201 - Created code) ✅
+            - Update a single menu item PUT, PATCH /api/menu-items/{menuItem} ✅
+                - Requirements say "Managers can update the item of the day". 
+                Do we need to be able to label the item of the day? How do we identify the item of the day? Check this
+            - Delete a single menu item DELETE /api/menu-items/{menuItem} ✅
+            - Check valid/invalid/blank input and when item does not exist ✅
+        - Users that aren't managers can't add, edit or remove menu items ✅
+
     * CATEGORY MANAGEMENT
         - Managers can add categories - TO DO
         - Anonymous users and non-Manager users can't add categories - TO DO
         - Customers can view all categories - TO DO
             - anonymous users can't - TO DO
-
-    * MENU ITEM MANAGEMENT ✅
-        - Managers can add, edit and remove menu items. I.e. 
-            - Create a new menu item POST /api/menu-items/ (and return 201 - Created code)
-            - Update a single menu item PUT, PATCH /api/menu-items/{menuItem}
-                - Requirements say "Managers can update the item of the day". 
-                Do we need to be able to label the item of the day? How do we identify the item of the day? Check this
-            - Delete a single menu item DELETE /api/menu-items/{menuItem}
-                -> Then try to view it
-            - Check valid/invalid/blank input and when item does not exist
-        - Users that aren't managers can't add, edit or remove menu items
     
     * CART MANAGEMENT
         - Customers can add menu items to their cart
