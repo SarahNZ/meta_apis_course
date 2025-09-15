@@ -164,7 +164,7 @@ CREATE TEST USERS AND GROUPS ✅
             - What if the request has an invalid category? 200 ✅
         - Customers can search for menu items - TO DO
             I.e. Check auth/not auth, item exists/does not (correct status codes)
-        - Customers can sort menu items by price - TO DO
+        - Customers can sort menu items by price ✅
             - valid/invalid search criteria
         - Customers can paginate menu items ✅
         - Customers, delivery crew and managers can view a single menu item ✅
@@ -180,12 +180,13 @@ CREATE TEST USERS AND GROUPS ✅
             - Delete a single menu item DELETE /api/menu-items/{menuItem} ✅
             - Check valid/invalid/blank input and when item does not exist ✅
         - Users that aren't managers can't add, edit or remove menu items ✅
+        - IMPLEMENT PAGINATION - Make sure users can paginate menu-items endpoint ✅
 
     * CATEGORY MANAGEMENT
-        - Managers can add categories - TO DO
-        - Anonymous users and non-Manager users can't add categories - TO DO
-        - Customers can view all categories - TO DO
-            - anonymous users can't - TO DO
+        - Managers can add categories ✅
+        - Anonymous users and non-Manager users can't add categories ✅
+        - Customers can view all categories ✅
+            - anonymous users can't ✅
     
     * CART MANAGEMENT
         - Customers can add menu items to their cart
@@ -261,9 +262,4 @@ CREATE TEST USERS AND GROUPS ✅
             - DC can't update any other fields of an order
             - DC can't update the status of an order not assigned to the DC
 
-# IMPLEMENT PAGINATION
-- Make sure users can paginate relevant endpoints
-
 # ENSURE BUSINESS REQUIREMENTS HAVE BEEN MET  
-
-# SUBMIT ASSIGNMENT

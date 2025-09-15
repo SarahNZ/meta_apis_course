@@ -1,10 +1,11 @@
 from django.urls import path, include   
 from rest_framework.routers import DefaultRouter
-from .views import MenuItemsViewSet
+from .views import CategoriesViewSet, MenuItemsViewSet
 from . import views
 
 router = DefaultRouter()
 router.register(r'menu-items', MenuItemsViewSet, basename = 'menuitem')
+router.register(r'categories', CategoriesViewSet, basename = 'category')
 
 urlpatterns = [
     path('groups/manager/users/', views.managers),

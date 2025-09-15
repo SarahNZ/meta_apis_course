@@ -147,7 +147,6 @@ REST_FRAMEWORK = {
     # The default number of items per page for all list endpoints in this project.
     # E.g. ?page_size=2 → will return 2 items per page with "count", "next" and "previous" metadata
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 2,
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',

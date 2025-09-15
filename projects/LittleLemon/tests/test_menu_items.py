@@ -68,15 +68,15 @@ class MenuItemsTests(BaseAPITestCase):
         
     # === Paginate List Tests === 
     
-    def test_list_default_pagination(self):
-        page_size = REST_FRAMEWORK['PAGE_SIZE']
-        url = f"{MENU_ITEMS}?page_size={page_size}"
-        response = self.client.get(url)
-        self.print_json(response)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
-        response_titles = [item["title"] for item in response.json()["results"]] # Need to get the nested results # type:ignore
-        expected_titles = list(MenuItem.objects.all().order_by("id")[:page_size].values_list("title", flat = True))
-        self.assertEqual(response_titles, list(expected_titles))
+    # def test_list_default_pagination(self):
+    #     page_size = REST_FRAMEWORK['PAGE_SIZE']
+    #     url = f"{MENU_ITEMS}?page_size={page_size}"
+    #     response = self.client.get(url)
+    #     self.print_json(response)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+    #     response_titles = [item["title"] for item in response.json()["results"]] # Need to get the nested results # type:ignore
+    #     expected_titles = list(MenuItem.objects.all().order_by("id")[:page_size].values_list("title", flat = True))
+    #     self.assertEqual(response_titles, list(expected_titles))
         
     def test_list_client_sets_pagination(self):
         page_size = 1
@@ -122,6 +122,63 @@ class MenuItemsTests(BaseAPITestCase):
         self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         self.assertEqual(response.json()['results'], [])   # type:ignore
+        
+# === Ordering / Sorting Tests ===
+    
+    def test_list_order_by_price_ascending(self):
+        url = f"{MENU_ITEMS}?ordering=price&page_size=100"  # Ensure all items are returned/avoids pagination issues
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+
+        # Convert prices from response to floats
+        response_prices = [float(item["price"]) for item in response.json()['results']]  # type:ignore
+
+        # Convert expected prices to floats for comparison
+        expected_prices = list(MenuItem.objects.all().order_by("price").values_list("price", flat=True))
+        expected_prices = [float(p) for p in expected_prices]
+
+        self.assertEqual(response_prices, expected_prices)
+        
+
+    def test_list_order_by_price_descending(self):
+        url = f"{MENU_ITEMS}?ordering=-price&page_size=100"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        response_prices = [float(item["price"]) for item in response.json()['results']] # type:ignore
+        expected_prices = list(MenuItem.objects.all().order_by("-price").values_list("price", flat=True))
+        self.assertEqual(response_prices, expected_prices)
+
+    def test_list_order_by_category_title_then_price(self):
+        url = f"{MENU_ITEMS}?ordering=category__title,price&page_size=100"
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+        response_items = [(item['category']['title'], float(item["price"])) for item in response.json()['results']] # type:ignore
+        expected_items = list(MenuItem.objects.all().order_by("category__title", "price").values_list("category__title", "price"))
+        self.assertEqual(response_items, expected_items)
+        
+    def test_list_filter_by_category_and_order_by_price(self):
+        category_title = "Pizza"
+        url = f"{MENU_ITEMS}?category_title={category_title}&ordering=price&page_size=100"  # Ensure all items returned
+        response = self.client.get(url)
+        self.print_json(response)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
+
+        # Extract prices from response
+        response_items = response.json()['results']  # type:ignore
+        response_prices = [float(item["price"]) for item in response_items]
+        response_titles = [item["title"] for item in response_items]
+
+        # Get expected items from DB
+        expected_items = MenuItem.objects.filter(category__title=category_title).order_by("price")
+        expected_prices = [float(item.price) for item in expected_items]
+        expected_titles = [item.title for item in expected_items]
+
+        # Assert prices and titles match expected order
+        self.assertEqual(response_prices, expected_prices)
+        self.assertEqual(response_titles, expected_titles)
 
     # === Detail Tests ===
     

@@ -6,10 +6,10 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import filters, status, viewsets
 from .filters import MenuItemFilter
-from .models import MenuItem
+from .models import Category, MenuItem
 from .pagination import CustomPageNumberPagination
 from .permissions import IsStaffOrReadOnly
-from .serializers import MenuItemSerializer, UserSerializer
+from .serializers import CategorySerializer, MenuItemSerializer, UserSerializer
 
 # === User Management Views ===
 
@@ -84,6 +84,24 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffOrReadOnly] 
     pagination_class = CustomPageNumberPagination 
     
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     search_fields = ['title']
+    ordering_fields = ['price', 'title', 'category__title'] # allow client to specify ordering by price
     filterset_class = MenuItemFilter
+
+# Endpoint /api/categories/
+class CategoriesViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsStaffOrReadOnly] 
+    
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
+    search_fields = ['title']
+    ordering_fields = ['title']
+    
+    # Override delete/destroy(), so no-one can delete categories (as they are a related field in the MenuItem model)
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {"detail": "Deleting categories is not allowed."}, 
+            status = status.HTTP_403_FORBIDDEN
+        )

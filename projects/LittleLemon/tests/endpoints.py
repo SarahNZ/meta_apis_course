@@ -1,8 +1,9 @@
-LOGIN = "/auth/token/login/"  # Djoser login endpoint
-USERS = "/api/users/"
-MANAGERS = "/api/groups/manager/users/"
+CATEGORIES = "/api/categories/"
 DELIVERY_CREW = "/api/groups/delivery-crew/users/"
+LOGIN = "/auth/token/login/"  # Djoser login endpoint
+MANAGERS = "/api/groups/manager/users/"
 MENU_ITEMS = "/api/menu-items/"
+USERS = "/api/users/"
 
 '''
 ### DJOSER (User token-based authentication) ###

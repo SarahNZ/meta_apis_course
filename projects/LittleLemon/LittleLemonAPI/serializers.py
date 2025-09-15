@@ -9,6 +9,22 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'slug', 'title']
         
+    title = serializers.CharField(
+        max_length = 255,
+        validators = [UniqueValidator(queryset = Category.objects.all())]
+    )
+    
+    slug = serializers.CharField(
+        max_length = 255,
+        validators = [UniqueValidator(queryset = Category.objects.all())]
+    )
+    
+    def validate_title(self, value):
+        return bleach.clean(value)
+    
+    def validate_slug(self, value):
+        return bleach.clean(value)
+        
 class MenuItemSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only = True)
     category_id = serializers.IntegerField(write_only = True)
