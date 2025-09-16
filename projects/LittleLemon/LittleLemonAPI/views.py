@@ -6,10 +6,10 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import filters, status, viewsets
 from .filters import MenuItemFilter
-from .models import Category, MenuItem
+from .models import Cart, Category, MenuItem
 from .pagination import CustomPageNumberPagination
 from .permissions import IsStaffOrReadOnly
-from .serializers import CategorySerializer, MenuItemSerializer, UserSerializer
+from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, UserSerializer
 
 # === User Management Views ===
 
@@ -105,3 +105,13 @@ class CategoriesViewSet(viewsets.ModelViewSet):
             {"detail": "Deleting categories is not allowed."}, 
             status = status.HTTP_403_FORBIDDEN
         )
+        
+# Endpoint /api/carts/
+class CartViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    
+    def list(self, request):
+        # Get authenticated user's cart. If empty returns []
+        queryset = Cart.objects.filter(user = request.user)
+        serializer = CartSerializer(queryset, many = True)
+        return Response(serializer.data)

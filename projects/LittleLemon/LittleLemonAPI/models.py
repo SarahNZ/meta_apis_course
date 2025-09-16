@@ -1,12 +1,12 @@
+import bleach
 from django.db import models
 from django.contrib.auth.models import User
 
 """
 To view all of the Category objects, use
 python manage.py shell
->>> from LittleLemonAPI.models import Category
->>> Category.objects.values_list("title", flat=True
-... )
+from LittleLemonAPI.models import Category
+Category.objects.values_list("title", flat=True)
 <QuerySet ['Appetizers', 'Desserts', 'Drinks', 'Mains', 'Sides']>
 """
 
@@ -16,9 +16,18 @@ class Category(models.Model):
     
     class Meta:
         ordering = ['id']
-    
+        
     def __str__(self):
         return self.title
+    
+    def clean(self):
+        self.title = bleach.clean(self.title)
+        self.slug = bleach.clean(self.slug)
+        
+    def save(self, *args, **kwargs):
+        # Call full_clean() to trigger model-level clean()
+        self.full_clean()
+        super().save(*args, **kwargs)
     
 class MenuItem(models.Model):
     title = models.CharField(max_length = 255, db_index = True)
@@ -32,6 +41,9 @@ class MenuItem(models.Model):
     def __str__(self):
         return self.title
     
+    def clean(self):
+        self.title = bleach.clean(self.title)
+        
 class Cart(models.Model):
     user = models.ForeignKey(User, on_delete = models.CASCADE)
     menuitem = models.ForeignKey(MenuItem, on_delete = models.CASCADE)

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.models import User
-from .models import Category, MenuItem
+from .models import Cart, Category, MenuItem
 import bleach
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -18,12 +18,6 @@ class CategorySerializer(serializers.ModelSerializer):
         max_length = 255,
         validators = [UniqueValidator(queryset = Category.objects.all())]
     )
-    
-    def validate_title(self, value):
-        return bleach.clean(value)
-    
-    def validate_slug(self, value):
-        return bleach.clean(value)
         
 class MenuItemSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only = True)
@@ -37,9 +31,6 @@ class MenuItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = MenuItem
         fields = ["id", "title", "price", "featured", "category", "category_id"]
-    
-    def validate_title(self, value):
-        return bleach.clean(value)
     
     def validate_price(self, value):
         if value < 0:
@@ -60,6 +51,23 @@ class MenuItemSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"category_id": "Invalid category id"})
         return super().update(instance, validated_data)
         
+class CartSerializer(serializers.ModelSerializer):
+    # Adding a field to the serializer that doesn't exist in the Cart model. It is in the MenuItem model.
+    menuitem_title = serializers.ReadOnlyField(source = "menuitem.title")
+    
+    class Meta:
+        model = Cart  
+        fields = [
+            "id",
+            "menuitem",
+            "menuitem_title",
+            "quantity",
+            "unit_price",
+            "price",
+        ]
+        
+        read_only_fields = ["unit_price", "price"]
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User  

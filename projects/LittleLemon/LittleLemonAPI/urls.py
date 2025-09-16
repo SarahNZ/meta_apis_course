@@ -1,11 +1,13 @@
-from django.urls import path, include   
+from django.urls import path, include  
+from rest_framework.decorators import action 
 from rest_framework.routers import DefaultRouter
-from .views import CategoriesViewSet, MenuItemsViewSet
+from .views import CartViewSet, CategoriesViewSet, MenuItemsViewSet
 from . import views
 
 router = DefaultRouter()
-router.register(r'menu-items', MenuItemsViewSet, basename = 'menuitem')
-router.register(r'categories', CategoriesViewSet, basename = 'category')
+router.register('carts', CartViewSet, basename = 'cart')
+router.register('categories', CategoriesViewSet, basename = 'category')
+router.register('menu-items', MenuItemsViewSet, basename = 'menuitem')
 
 urlpatterns = [
     path('groups/manager/users/', views.managers),
