@@ -189,14 +189,14 @@ CREATE TEST USERS AND GROUPS ✅
             - anonymous users can't ✅
     
     * CART MANAGEMENT
-        - Customers can add menu items to their cart
+        - Customers can add menu items to their cart ✅
             POST /api/users/{userId}/cart/menu-items or
             POST /api/cart/menu-items - adds the menu items to the cart. 
                 Sets the authenticated user as the user id for these cart items 
             - Check valid/invalid & auth/not auth actions
-        - Customers can view the menu items in their cart  
+        - Customers can view the menu items in their cart ✅
             GET /api/cart/menu-items for the current user token  
-        - Customers can't view other customer's cart (menu items)
+        - Customers can't view other customer's cart (menu items) ✅
         - Customers can empty their cart at any time
             DELETE /api/users/{userId}/cart
             or 
