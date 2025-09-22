@@ -1,0 +1,7 @@
+# === For future database transfers ===
+
+# When dumping data from Django, you can exclude system data upfront
+# Also check that the json file is encoded with UTF-8 (not 16)
+# Note: Tokens are not transferred. Have to be recreated for each user, but password is still the same
+
+python manage.py dumpdata --exclude auth.permission --exclude contenttypes --exclude admin.logentry --exclude sessions.session > clean_backup.json
