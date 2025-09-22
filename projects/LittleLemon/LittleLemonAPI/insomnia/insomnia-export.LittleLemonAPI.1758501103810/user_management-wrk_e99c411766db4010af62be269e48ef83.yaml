@@ -1,0 +1,398 @@
+type: collection.insomnia.rest/5.0
+name: user_management
+meta:
+  id: wrk_e99c411766db4010af62be269e48ef83
+  created: 1757024948553
+  modified: 1757298981650
+  description: ""
+collection:
+  - url: http://localhost:8000/auth/token/login/
+    name: superuser_can_login_and_get_token
+    meta:
+      id: req_97164de6f3ed4486a4b188eab5fbd4fd
+      created: 1757024948850
+      modified: 1757298856151
+      isPrivate: false
+      description: ""
+      sortKey: -1757024948850
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_b279590e005448babcc94124d4fdfa70
+          name: username
+          value: sarah
+          description: ""
+          disabled: false
+        - id: pair_42c808a65efc4b2c8be9962edd63f1c1
+          name: password
+          value: dogcatcamelpig
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/users/
+    name: create_new_customer_cannot_create_duplicate
+    meta:
+      id: req_ea69d02dd65346ca89ace6e5d098f478
+      created: 1757287016959
+      modified: 1757292299299
+      isPrivate: false
+      description: ""
+      sortKey: -1757287016963
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_93b714e5414043d59750edb4b52718a6
+          name: username
+          value: sandy
+          description: ""
+          disabled: false
+        - id: pair_4eaf40cd19ee4ea6827171aad4a71e22
+          name: password
+          value: sandypass123
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/users/
+    name: manager_can_view_all_users
+    meta:
+      id: req_f664112999ba420a9168aa2b69dc571e
+      created: 1757291080110
+      modified: 1757384909051
+      isPrivate: false
+      description: ""
+      sortKey: -1757291080110
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 87357e8ccaedb76b90e03b9efb55ad6f039a2ef0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/token/login/
+    name: manager_can_login_and_get_token
+    meta:
+      id: req_6f8de9918239488f9f34c8555a352997
+      created: 1757291251019
+      modified: 1757883039049
+      isPrivate: false
+      description: ""
+      sortKey: -1756948428622
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_b279590e005448babcc94124d4fdfa70
+          name: username
+          value: wolf
+          description: ""
+          disabled: false
+        - id: pair_42c808a65efc4b2c8be9962edd63f1c1
+          name: password
+          value: dojaandsza
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/users/
+    name: superuser_can_view_all_users
+    meta:
+      id: req_2fe442195edc4aefa9cdb7c7222bb2d9
+      created: 1757291930669
+      modified: 1757293905888
+      isPrivate: false
+      description: ""
+      sortKey: -1757289048536.5
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 3a8dffd5dfb0e37042bce82b0266fcdff786d96a
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/users/
+    name: delivery_crew_not_staff_admin_cannot_view_users
+    meta:
+      id: req_02006227222c4966a251903b3ecda6ad
+      created: 1757292150475
+      modified: 1757294705187
+      isPrivate: false
+      description: ""
+      sortKey: -1757290064323.25
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 0eca685221d53f4855b2579b0194be26b89c9f50
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/users/
+    name: authenticated_user_cannot_add_email_as_update
+    meta:
+      id: req_869adfbfd157440d91c7fb3fd64d041a
+      created: 1757292253557
+      modified: 1757294925015
+      isPrivate: false
+      description: ""
+      sortKey: -1757281765523
+    method: PATCH
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_93b714e5414043d59750edb4b52718a6
+          name: username
+          value: sandy
+          description: ""
+          disabled: false
+        - id: pair_4eaf40cd19ee4ea6827171aad4a71e22
+          name: password
+          value: sandypass123
+          description: ""
+          disabled: false
+        - id: pair_d17c1b0b9aa14f88b391f9638be59486
+          name: email
+          value: sandy@littlelemon.com
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/users/
+    name: anon_user_no_token_cannot_view_all_users
+    meta:
+      id: req_f0f6d0125ad04c80a173cead7d76f19d
+      created: 1757294160212
+      modified: 1757294451581
+      isPrivate: false
+      description: ""
+      sortKey: -1757290572216.625
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: ""
+      token: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/token/login/
+    name: delivery_person_can_login_and_get_token
+    meta:
+      id: req_b4a7a8fe257a4d7c80b26313e94d7ad0
+      created: 1757294586320
+      modified: 1757298836526
+      isPrivate: false
+      description: ""
+      sortKey: -1756910168508
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_b279590e005448babcc94124d4fdfa70
+          name: username
+          value: kaitlyn
+          description: ""
+          disabled: false
+        - id: pair_42c808a65efc4b2c8be9962edd63f1c1
+          name: password
+          value: kaitlynpass123
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/token/login/
+    name: customer_can_login_and_get_token
+    meta:
+      id: req_50c453e92bd14f28bdc2f872fa59489b
+      created: 1757294802214
+      modified: 1757298898072
+      isPrivate: false
+      description: ""
+      sortKey: -1756891038451
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_b279590e005448babcc94124d4fdfa70
+          name: username
+          value: ren
+          description: ""
+          disabled: false
+        - id: pair_42c808a65efc4b2c8be9962edd63f1c1
+          name: password
+          value: renpass123
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/users/
+    name: authenticated_customer_cannot_view_users
+    meta:
+      id: req_5778e73f32b143749f113a47f79cf8c8
+      created: 1757294868895
+      modified: 1757294877341
+      isPrivate: false
+      description: ""
+      sortKey: -1757289556429.875
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 6700999567921565fb9f2efe442068673474d7d5
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/auth/users/me
+    name: authenticated_customer_can_view_own_user_info
+    meta:
+      id: req_61783bff52a940718485b4bedd730647
+      created: 1757294955132
+      modified: 1757295043555
+      isPrivate: false
+      description: ""
+      sortKey: -1757289302483.1875
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 6700999567921565fb9f2efe442068673474d7d5
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_d76f20e4af67dc9b291affc7c2522f878c49aee0
+    created: 1757024948583
+    modified: 1757024948583
+environments:
+  name: Base Environment
+  meta:
+    id: env_d76f20e4af67dc9b291affc7c2522f878c49aee0
+    created: 1757024948564
+    modified: 1757024948564
+    isPrivate: false

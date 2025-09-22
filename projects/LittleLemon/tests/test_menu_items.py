@@ -27,7 +27,6 @@ class MenuItemsTests(BaseAPITestCase):
         page_size = 100
         url = f"{MENU_ITEMS}?page_size={page_size}"
         response = self.client.get(url)
-        print(response.status_code, response.json())
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         titles = [item["title"] for item in response.json()['results']]    # type:ignore
         for m in MenuItem.objects.all():
@@ -36,7 +35,6 @@ class MenuItemsTests(BaseAPITestCase):
     def test_list_anon_user_cannot_view(self):
         self.client.credentials()
         response = self.client.get(MENU_ITEMS)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
         
     # === Filter List Tests ===
@@ -44,7 +42,6 @@ class MenuItemsTests(BaseAPITestCase):
     def test_list_filter_by_category_exact_match(self):
         url = f"{MENU_ITEMS}?category__title=Pizza"
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         response_titles = [item["title"] for item in response.json()['results']]   # type:ignore
         pizza_items = [m.title for m in MenuItem.objects.filter(category__title="Pizza")]
@@ -54,7 +51,6 @@ class MenuItemsTests(BaseAPITestCase):
     def test_list_filter_by_category_partial_match(self):
         url = f"{MENU_ITEMS}?category__title__icontains=Pizz"
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         response_titles = [item["title"] for item in response.json()['results']]   # type:ignore
         pizza_items = [m.title for m in MenuItem.objects.filter(category__title="Pizza")]
@@ -64,7 +60,6 @@ class MenuItemsTests(BaseAPITestCase):
     def test_list_filter_query_string_invalid_or_missing_category(self):
         url = f"{MENU_ITEMS}?category__title=Sushi"
         response = self.client.get(url)
-        self.print_json(response)
         # If the query string is invalid or the category is missing, all menu items are returned
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         
@@ -74,7 +69,6 @@ class MenuItemsTests(BaseAPITestCase):
         page_size = 1
         url = f"{MENU_ITEMS}?page_size={page_size}"
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         response_titles = [item["title"] for item in response.json()["results"]] # Need to get the nested results # type:ignore
         expected_titles = list(MenuItem.objects.all().order_by("id")[:page_size].values_list("title", flat = True))
@@ -89,7 +83,6 @@ class MenuItemsTests(BaseAPITestCase):
         criteria = "green salad"
         url = f"{MENU_ITEMS}?search={criteria}"
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         response_titles = [item["title"] for item in response.json()['results']]   # type:ignore
         expected_titles = [m.title for m in MenuItem.objects.filter(title__icontains={criteria})]
@@ -100,7 +93,6 @@ class MenuItemsTests(BaseAPITestCase):
         criteria = "salad"
         url = f"{MENU_ITEMS}?search={criteria}"
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         response_titles = [item["title"] for item in response.json()['results']]   # type:ignore
         expected_titles = [m.title for m in MenuItem.objects.filter(title__icontains={criteria})]
@@ -111,7 +103,6 @@ class MenuItemsTests(BaseAPITestCase):
         criteria = "xyz"
         url = f"{MENU_ITEMS}?search={criteria}"
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         self.assertEqual(response.json()['results'], [])   # type:ignore
         
@@ -120,7 +111,6 @@ class MenuItemsTests(BaseAPITestCase):
     def test_list_order_by_price_ascending(self):
         url = f"{MENU_ITEMS}?ordering=price&page_size=100"  # Ensure all items are returned/avoids pagination issues
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
 
         # Convert prices from response to floats
@@ -136,7 +126,6 @@ class MenuItemsTests(BaseAPITestCase):
     def test_list_order_by_price_descending(self):
         url = f"{MENU_ITEMS}?ordering=-price&page_size=100"
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         response_prices = [float(item["price"]) for item in response.json()['results']] # type:ignore
         expected_prices = list(MenuItem.objects.all().order_by("-price").values_list("price", flat=True))
@@ -145,7 +134,6 @@ class MenuItemsTests(BaseAPITestCase):
     def test_list_order_by_category_title_then_price(self):
         url = f"{MENU_ITEMS}?ordering=category__title,price&page_size=100"
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         response_items = [(item['category']['title'], float(item["price"])) for item in response.json()['results']] # type:ignore
         expected_items = list(MenuItem.objects.all().order_by("category__title", "price").values_list("category__title", "price"))
@@ -155,7 +143,6 @@ class MenuItemsTests(BaseAPITestCase):
         category_title = "Pizza"
         url = f"{MENU_ITEMS}?category_title={category_title}&ordering=price&page_size=100"  # Ensure all items returned
         response = self.client.get(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
 
         # Extract prices from response
@@ -204,7 +191,6 @@ class MenuItemsTests(BaseAPITestCase):
             "category_id": self.category_dessert.id # type:ignore
         }
         response = self.client.post(MENU_ITEMS, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED) # type:ignore
         self.assertTrue(MenuItem.objects.filter(title="Tiramisu").exists()) # type:ignore
 
@@ -215,7 +201,6 @@ class MenuItemsTests(BaseAPITestCase):
         self.authenticate_client(token)
         data = {"title": "Gelato", "price": 12.0, "featured": False, "category_id": self.category_dessert.id}   # type:ignore
         response = self.client.post(MENU_ITEMS, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)   # type:ignore
         self.assertFalse(MenuItem.objects.filter(title="Gelato").exists())
 
@@ -242,7 +227,6 @@ class MenuItemsTests(BaseAPITestCase):
         data = {"title": "Updated Dish", "price": 15.0, "featured": True}
         url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
         response = self.client.patch(url, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         item.refresh_from_db()
         self.assertEqual(item.title, "Updated Dish")
@@ -268,7 +252,6 @@ class MenuItemsTests(BaseAPITestCase):
         }
         url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
         response = self.client.put(url, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         item.refresh_from_db()
         self.assertEqual(item.title, "Updated Dish")
@@ -289,7 +272,6 @@ class MenuItemsTests(BaseAPITestCase):
         data = {"price": 99.0}
         url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
         response = self.client.patch(url, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  # type:ignore
         item.refresh_from_db()
         self.assertEqual(item.price, 10.0)
@@ -313,7 +295,6 @@ class MenuItemsTests(BaseAPITestCase):
         }
         url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
         response = self.client.put(url, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  # type:ignore
         item.refresh_from_db()
         self.assertEqual(item.title, "Non-Staff Dish")
@@ -328,7 +309,6 @@ class MenuItemsTests(BaseAPITestCase):
         data = {"price": 99.0}
         url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
         response = self.client.patch(url, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type:ignore
         item.refresh_from_db()
         self.assertEqual(item.price, 10.0)
@@ -348,7 +328,6 @@ class MenuItemsTests(BaseAPITestCase):
         }
         url = f"{MENU_ITEMS}{item.id}/"  # type:ignore
         response = self.client.put(url, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type:ignore
         item.refresh_from_db()
         self.assertEqual(item.title, "Anon Dish")
@@ -363,7 +342,6 @@ class MenuItemsTests(BaseAPITestCase):
         data = {"price": -7.0}
         url = f"{MENU_ITEMS}{item.id}/" # type:ignore
         response = self.client.patch(url, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) # type:ignore
         self.assertIn("price", response.json()) # type:ignore
 
@@ -375,7 +353,6 @@ class MenuItemsTests(BaseAPITestCase):
         data = {"category_id": 9999}
         url = f"{MENU_ITEMS}{item.id}/" # type:ignore
         response = self.client.patch(url, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) # type:ignore
         self.assertIn("category_id", response.json())   # type:ignore
 
@@ -388,7 +365,6 @@ class MenuItemsTests(BaseAPITestCase):
         data = {"title": "Dish One", "price": 15.0, "featured": True, "category_id": self.category_dessert.id}  # type:ignore
         url = f"{MENU_ITEMS}{item2.id}/"    # type:ignore
         response = self.client.put(url, data, format="json")
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) # type:ignore
         self.assertIn("title", response.json()) # type:ignore
 
@@ -421,7 +397,6 @@ class MenuItemsTests(BaseAPITestCase):
         item = MenuItem.objects.create(title="To Delete", price=10.0, featured=False, category=self.category_dessert)
         url = f"{MENU_ITEMS}{item.id}/" # type:ignore
         response = self.client.delete(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)   # type:ignore
         self.assertTrue(MenuItem.objects.filter(id=item.id).exists())   # type:ignore
 
@@ -430,6 +405,5 @@ class MenuItemsTests(BaseAPITestCase):
         item = MenuItem.objects.create(title="To Delete", price=10.0, featured=False, category=self.category_dessert)
         url = f"{MENU_ITEMS}{item.id}/" # type:ignore
         response = self.client.delete(url)
-        self.print_json(response)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
         self.assertTrue(MenuItem.objects.filter(id=item.id).exists())   # type:ignore

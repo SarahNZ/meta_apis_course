@@ -1,0 +1,27 @@
+# === View and Create Cart Tests ===
+    - test_authenticated_user_can_view_empty_cart ✅
+    - test_authenticated_user_can_add_and_view_single_cart_item ✅
+    - test_authenticated_user_can_add_and_view_two_different_cart_items ✅
+    - test_authenticated_user_can_add_same_item_twice ✅
+    - test_authenticated_user_can_add_multiple_quantities_and_different_items ✅
+    - test_anon_user_cannot_view_or_add_to_cart ✅
+    - test_auth_user_1_cannot_view_auth_user_2_cart - TODO
+
+# === Delete Cart Tests ===
+    - test_authenticated_user_cannot_delete_item_not_in_cart - TODO
+    - test_authenticated_user_deletes_single_cart_item ✅
+    - test_anon_user_cannot_delete_another_users_item_in_cart - TODO
+    - test_auth_user_1_cannot_delete_auth_user_2_cart - TODO
+    - test_authenticated_user_deletes_one_item_of_two_in_cart - TODO
+    - test_authenticated_user_deletes_multiple_quantities_of_same_item - TODO
+
+# === Clear Cart Tests ===
+    - test_authenticated_user_clears_cart_single_item ✅
+    - test_anon_user_cannot_clear_auth_users_cart - TODO
+    - test_auth_user_1_cannot_clear_auth_user_2_cart - TODO
+    - test_authenticated_user_clears_cart_of_two_different_cart_items - TODO
+    - test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item - TODO
+    - test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items - TODO
+
+What about put and patch? - TODO
+Make sure users can't set their own price - must be read-only to clients - TODO

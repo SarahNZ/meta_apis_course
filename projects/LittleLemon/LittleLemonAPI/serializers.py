@@ -51,7 +51,13 @@ class MenuItemSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"category_id": "Invalid category id"})
         return super().update(instance, validated_data)
         
+# Converts the Cart object into JSON
 class CartSerializer(serializers.ModelSerializer):
+    # The menuitem id is the primary key of the MenuItem model, not the Category model
+    menuitem = serializers.PrimaryKeyRelatedField(
+        queryset = MenuItem.objects.all()
+    )
+    
     # Adding a field to the serializer that doesn't exist in the Cart model. It is in the MenuItem model.
     menuitem_title = serializers.ReadOnlyField(source = "menuitem.title")
     
@@ -59,10 +65,10 @@ class CartSerializer(serializers.ModelSerializer):
         model = Cart  
         fields = [
             "id",
-            "menuitem",
-            "menuitem_title",
-            "quantity",
-            "unit_price",
+            "menuitem", # expects a MenuItem.id in POST body
+            "menuitem_title",   # shows MenuItem title in response
+            "quantity", # expects quantity to be provided in POST body
+            "unit_price",   # gets from MenuItem.price
             "price",
         ]
         

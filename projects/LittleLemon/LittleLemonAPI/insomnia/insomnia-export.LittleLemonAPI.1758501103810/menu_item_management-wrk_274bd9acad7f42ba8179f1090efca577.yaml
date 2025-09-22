@@ -1,0 +1,541 @@
+type: collection.insomnia.rest/5.0
+name: menu_item_management
+meta:
+  id: wrk_274bd9acad7f42ba8179f1090efca577
+  created: 1757475642701
+  modified: 1757475642701
+  description: ""
+collection:
+  - url: http://localhost:8000/api/menu-items/
+    name: auth_user_views_menu_items
+    meta:
+      id: req_d20116332e7a4499b9689e2630f5a465
+      created: 1757475664090
+      modified: 1757475749001
+      isPrivate: false
+      description: ""
+      sortKey: -1757475664090
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/categories/
+    name: auth_user_views_categories
+    meta:
+      id: req_45f7f2f401d3440ba2ed78cf4cfeccad
+      created: 1757479367711
+      modified: 1757479374364
+      isPrivate: false
+      description: ""
+      sortKey: -1757430926775
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/
+    name: auth_customer_views_menu_items
+    meta:
+      id: req_051575cc1d094b149f373724db8fdb7f
+      created: 1757554551445
+      modified: 1757554571414
+      isPrivate: false
+      description: ""
+      sortKey: -1757453295432.5
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/
+    name: anon_user_cannot_view_menu_items
+    meta:
+      id: req_2c35658e131d4dbe90eb0a86eefd06f2
+      created: 1757554697280
+      modified: 1757554704200
+      isPrivate: false
+      description: ""
+      sortKey: -1757464479761.25
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: ""
+      token: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/2
+    name: auth_user_views_menu_item
+    meta:
+      id: req_f42741d1d3394d909653349432f825be
+      created: 1757623390922
+      modified: 1757811776534
+      isPrivate: false
+      description: ""
+      sortKey: -1757470071925.625
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/1
+    name: anon_user_cannot_view_menu_item
+    meta:
+      id: req_fc0b1f10641a4d6fab929d02862628e9
+      created: 1757623965008
+      modified: 1757623971218
+      isPrivate: false
+      description: ""
+      sortKey: -1757467275843.4375
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: ""
+      token: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/?category_title=Desserts
+    name: filter_menu_items_by_category
+    meta:
+      id: req_57ed9e9f526d42a18d3d072f09d37955
+      created: 1757811802001
+      modified: 1757888464787
+      isPrivate: false
+      description: ""
+      sortKey: -1757472868007.8125
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/?category__ttle=Sushi
+    name: filter_menu_items_by_invalid_category
+    meta:
+      id: req_609db8b1ce6e4aefb78890db42094c81
+      created: 1757813048627
+      modified: 1757908588888
+      isPrivate: false
+      description: ""
+      sortKey: -1757471469966.7188
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/
+    name: auth_admin_user_adds_menu_item
+    meta:
+      id: req_c6119ee65c594da6bd246f6fcbdb4746
+      created: 1757814623636
+      modified: 1757815632223
+      isPrivate: false
+      description: ""
+      sortKey: -1757474266048.9062
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+          "title": "Cheese Toastie",
+          "price": 7.50,
+          "featured": false,
+          "category_id": 3
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/
+    name: auth_user_cannot_add_menu_item
+    meta:
+      id: req_97ece22af10f45a4a815afd1aff148ef
+      created: 1757815049974
+      modified: 1757816232473
+      isPrivate: false
+      description: ""
+      sortKey: -1757473567028.3594
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+          "title": "Tiramisu",
+          "price": 15.0,
+          "featured": false,
+          "category_id": 2
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/11/
+    name: auth_admin_removes_menu_item
+    meta:
+      id: req_57738924d62a4d5284b3f8a8783fcbd6
+      created: 1757815132629
+      modified: 1757815800248
+      isPrivate: false
+      description: ""
+      sortKey: -1757473916538.6328
+    method: DELETE
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/?page_size=1
+    name: auth_user_views_menu_items_pagination
+    meta:
+      id: req_d56e1563b5ab4d4998d64ceda4ee78eb
+      created: 1757829043238
+      modified: 1757887058319
+      isPrivate: false
+      description: ""
+      sortKey: -1757474965069.4531
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/?search="blue"
+    name: auth_user_search_for_menu_items
+    meta:
+      id: req_6fc750c264fe485db9623f87306070ec
+      created: 1757887312925
+      modified: 1757888881909
+      isPrivate: false
+      description: ""
+      sortKey: -1757474615559.1797
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/?page_size=10&ordering=category__title&ordering=price
+    name: auth_user_sorts_menu_items_by_price_asc
+    meta:
+      id: req_e897a4b1f0d04f249e00a4b82eed71b7
+      created: 1757890742614
+      modified: 1757891914778
+      isPrivate: false
+      description: ""
+      sortKey: -1757474440804.043
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/menu-items/?page_size=10&ordering=-cat
+    name: auth_user_sorts_menu_items_by_price_desc
+    meta:
+      id: req_b30c8fb182cc4869a790d213109ea7ff
+      created: 1757891271674
+      modified: 1757891732852
+      isPrivate: false
+      description: ""
+      sortKey: -1757474353426.4746
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/categories/
+    name: auth_user_views_categories
+    meta:
+      id: req_f82dc8277769474cb15cad4bb510b855
+      created: 1757893379769
+      modified: 1757893386806
+      isPrivate: false
+      description: ""
+      sortKey: -1757475314579.7266
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/categories/
+    name: auth_admin_user_adds_category
+    meta:
+      id: req_85ad0e3f17b14078968f4a85a71a5a56
+      created: 1757901542956
+      modified: 1757901631637
+      isPrivate: false
+      description: ""
+      sortKey: -1757474091293.7695
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+          "slug": "breakfast",
+          "title": "Jam on Toast"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/categories/
+    name: auth_admin_user_updates_category
+    meta:
+      id: req_b4ad1bfbf8644ee7b4401dad44c01500
+      created: 1757901776111
+      modified: 1757901805373
+      isPrivate: false
+      description: ""
+      sortKey: -1757474003916.2012
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+          "slug": "breakfast",
+          "title": "Jam on Toast"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/categories/6/
+    name: auth_admin_user_deletes_category
+    meta:
+      id: req_c978fa3e6c4141809f84523d09d9c181
+      created: 1757905357756
+      modified: 1757905411590
+      isPrivate: false
+      description: ""
+      sortKey: -1757474047604.9854
+    method: DELETE
+    body:
+      mimeType: application/json
+      text: ""
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 995a8256cf713277e902ad41edd2f10afbefd444
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_046e3211f377fbc239f3c9d55370b2f45a17daca
+    created: 1757475642715
+    modified: 1757475642715
+environments:
+  name: Base Environment
+  meta:
+    id: env_046e3211f377fbc239f3c9d55370b2f45a17daca
+    created: 1757475642710
+    modified: 1757475642710
+    isPrivate: false

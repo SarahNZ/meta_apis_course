@@ -1,0 +1,46 @@
+type: collection.insomnia.rest/5.0
+name: delivery_crew_management
+meta:
+  id: wrk_7ac2e194cd4d484ebf15ec4ee17c7e20
+  created: 1757386185121
+  modified: 1757386185121
+  description: ""
+collection:
+  - url: http://localhost:8000/api/groups/delivery-crew/users/
+    name: New Request
+    meta:
+      id: req_41663f39442c427a8af44e06867751d1
+      created: 1757386189460
+      modified: 1757388062309
+      isPrivate: false
+      description: ""
+      sortKey: -1757386189460
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      token: 0eca685221d53f4855b2579b0194be26b89c9f50
+      prefix: Token
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_4dcdb73fc6d74e03997a28467a0146e694745dfb
+    created: 1757386185134
+    modified: 1757386185134
+environments:
+  name: Base Environment
+  meta:
+    id: env_4dcdb73fc6d74e03997a28467a0146e694745dfb
+    created: 1757386185130
+    modified: 1757386185130
+    isPrivate: false

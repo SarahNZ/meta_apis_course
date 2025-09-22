@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User, Group
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import filters, status, viewsets
@@ -106,12 +106,56 @@ class CategoriesViewSet(viewsets.ModelViewSet):
             status = status.HTTP_403_FORBIDDEN
         )
         
-# Endpoint /api/carts/
+# Endpoint /api/cart/
 class CartViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     
     def list(self, request):
-        # Get authenticated user's cart. If empty returns []
+        # Return all cart items for the authenticated user. If empty, returns []
         queryset = Cart.objects.filter(user = request.user)
         serializer = CartSerializer(queryset, many = True)
         return Response(serializer.data)
+    
+    def create(self, request):
+        # Add a menu item to the cart or updated its quantity if it already exists
+        menu_item_id = request.data.get("menuitem")
+        quantity = int(request.data.get("quantity", 1))
+        
+        menu_item = get_object_or_404(MenuItem, id = menu_item_id)
+        
+        unit_price = menu_item.price 
+        total_price = unit_price * quantity  
+        
+        cart_item, created = Cart.objects.get_or_create(
+            user = request.user, 
+            menuitem = menu_item,
+            defaults = {
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "price": total_price,
+            },
+        )
+        
+        if not created:
+            # Update quantity instead of creating duplicate
+            cart_item.quantity += quantity  
+            # Also recalculate the total price for the row
+            cart_item.price = cart_item.unit_price * cart_item.quantity
+            # Save the updated values to the db
+            cart_item.save()
+            
+        serializer = CartSerializer(cart_item)
+        return Response(serializer.data, status = status.HTTP_201_CREATED)
+
+    def destroy(self, request, pk = None):
+        # Remove a specific item from the cart (I.e. Delete row from the Cart table)
+        cart_item = get_object_or_404(Cart, user = request.user, pk = pk)
+        cart_item.delete()
+        return Response(status = status.HTTP_204_NO_CONTENT)
+    
+    # endpoint /api/cart/clear/
+    @action(detail = False, methods = ['delete'])
+    def clear(self, request):
+        # Clear all items from the user's cart (I.e. Delete all rows in the Cart table for that user)
+        Cart.objects.filter(user = request.user).delete()
+        return Response(status = status.HTTP_204_NO_CONTENT)

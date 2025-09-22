@@ -5,7 +5,7 @@ from .views import CartViewSet, CategoriesViewSet, MenuItemsViewSet
 from . import views
 
 router = DefaultRouter()
-router.register('carts', CartViewSet, basename = 'cart')
+router.register('cart', CartViewSet, basename = 'cart')
 router.register('categories', CategoriesViewSet, basename = 'category')
 router.register('menu-items', MenuItemsViewSet, basename = 'menuitem')
 

@@ -1,0 +1,586 @@
+type: collection.insomnia.rest/5.0
+name: manager_group_management
+meta:
+  id: wrk_c3e980d1cb784bdf81502da95fa54f62
+  created: 1757299011224
+  modified: 1757386169030
+  description: ""
+collection:
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: manager_can_view_all_users_in_manager_group
+    meta:
+      id: req_07238b808f754ffab068810a733cc3b1
+      created: 1757299072759
+      modified: 1757358700452
+      isPrivate: false
+      description: ""
+      sortKey: -1757299072759
+    method: GET
+    body:
+      mimeType: application/x-www-form-urlencoded
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 87357e8ccaedb76b90e03b9efb55ad6f039a2ef0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: manager_adds_user_to_manager_group
+    meta:
+      id: req_56c53d03b077448a886e3301ea957b6b
+      created: 1757300888867
+      modified: 1757467698745
+      isPrivate: false
+      description: ""
+      sortKey: -1757295076434.5
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: blaze
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 211034aa9ec2b331b7faa3d002154e93a453a3bc
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_404_manager_adds_invalid_user_to_manager_group
+    meta:
+      id: req_1915a905a7924569a555c7dd7b6760cb
+      created: 1757301103057
+      modified: 1757301156284
+      isPrivate: false
+      description: ""
+      sortKey: -1757293078272.25
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: rabbit
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 87357e8ccaedb76b90e03b9efb55ad6f039a2ef0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_400_manager_adds_user_to_manager_group_blank_username
+    meta:
+      id: req_db1fa6cf6168446fad24eecbf150f800
+      created: 1757301193318
+      modified: 1757301256124
+      isPrivate: false
+      description: ""
+      sortKey: -1757292079191.125
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_21bf55f1bc814d399018313766b043f9
+          name: username
+          value: ""
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 87357e8ccaedb76b90e03b9efb55ad6f039a2ef0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_403_customer_cannot_add_user_to_manager_group
+    meta:
+      id: req_446544405d8b48fe9f34275998692751
+      created: 1757301319583
+      modified: 1757301374240
+      isPrivate: false
+      description: ""
+      sortKey: -1757294077353.375
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: aroha
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 6700999567921565fb9f2efe442068673474d7d5
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_401_anon_user_cannot_add_user_to_manager_group
+    meta:
+      id: req_4b580ccea32b4da29979c4cc6d89e076
+      created: 1757301419866
+      modified: 1757360880462
+      isPrivate: false
+      description: ""
+      sortKey: -1757293577812.8125
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: aroha
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: ""
+      token: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: manager_removes_user_from_manager_group
+    meta:
+      id: req_e8352062c0cf4cd39f5507556c6677da
+      created: 1757302250747
+      modified: 1757467745090
+      isPrivate: false
+      description: ""
+      sortKey: -1757294576893.9375
+    method: DELETE
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: ""
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 211034aa9ec2b331b7faa3d002154e93a453a3bc
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_400_manager_removes_user_from_manager_group_blank_username
+    meta:
+      id: req_e022449e981f4a2db22ef15d41957da4
+      created: 1757302382885
+      modified: 1757360773891
+      isPrivate: false
+      description: ""
+      sortKey: -1757294327123.6562
+    method: DELETE
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: ""
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 87357e8ccaedb76b90e03b9efb55ad6f039a2ef0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_401_anon_user_cannot_delete_user_from_manager_group
+    meta:
+      id: req_d0ca45589e974639b1d083272041cefb
+      created: 1757360855883
+      modified: 1757360941763
+      isPrivate: false
+      description: ""
+      sortKey: -1757293328042.5312
+    method: DELETE
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: marcus
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: ""
+      token: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_403_customer_cannot_delete_user_from_manager_group
+    meta:
+      id: req_2ac5343225324fe1824fb45275403d98
+      created: 1757361010038
+      modified: 1757361018613
+      isPrivate: false
+      description: ""
+      sortKey: -1757293827583.0938
+    method: DELETE
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: marcus
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 6700999567921565fb9f2efe442068673474d7d5
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_404_manager_deletes_invalid_user_from_manager_group
+    meta:
+      id: req_e640f9df34e34973b47b995ad2547847
+      created: 1757361061199
+      modified: 1757361097845
+      isPrivate: false
+      description: ""
+      sortKey: -1757292578731.6875
+    method: DELETE
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: rabbit
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 87357e8ccaedb76b90e03b9efb55ad6f039a2ef0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_anon_user_cannot_view_all_users_in_manager_group
+    meta:
+      id: req_a3a0daf8b1e34e728b30a0c8a7a08016
+      created: 1757361149354
+      modified: 1757361158901
+      isPrivate: false
+      description: ""
+      sortKey: -1757297074596.75
+    method: GET
+    body:
+      mimeType: application/x-www-form-urlencoded
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: ""
+      token: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: error_customers_cannot_view_all_users_in_manager_group
+    meta:
+      id: req_ba9d183c7e57478380f9c7ed05b9b2f5
+      created: 1757361196451
+      modified: 1757361238604
+      isPrivate: false
+      description: ""
+      sortKey: -1757296075515.625
+    method: GET
+    body:
+      mimeType: application/x-www-form-urlencoded
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 6700999567921565fb9f2efe442068673474d7d5
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: admin_adds_user_to_manager_group
+    meta:
+      id: req_dec5d9a306db4c999273b8bdef5247a6
+      created: 1757446859511
+      modified: 1757448491967
+      isPrivate: false
+      description: ""
+      sortKey: -1757294826664.2188
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: eva
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 5805882648a40be388194b0f9dd2efd4e479d994
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: admin_removes_user_from_manager_group
+    meta:
+      id: req_2b487d27824f4d049cfa750760481ef3
+      created: 1757447924306
+      modified: 1757448519415
+      isPrivate: false
+      description: ""
+      sortKey: -1757294452008.7969
+    method: DELETE
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_6caff50616004287a957f7b2091d8f21
+          name: username
+          value: eva
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 5805882648a40be388194b0f9dd2efd4e479d994
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/groups/manager/users/
+    name: admin_views_all_users_in_manager_group
+    meta:
+      id: req_7aa954258d6a4ce3b6b2d28d043b1406
+      created: 1757448538202
+      modified: 1757448543315
+      isPrivate: false
+      description: ""
+      sortKey: -1757298073677.875
+    method: GET
+    body:
+      mimeType: application/x-www-form-urlencoded
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: 5805882648a40be388194b0f9dd2efd4e479d994
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8000/api/users/
+    name: admin_views_all_users
+    meta:
+      id: req_59a823b41eaa44e2a8487be6bf13281f
+      created: 1757463569252
+      modified: 1757463657700
+      isPrivate: false
+      description: ""
+      sortKey: -1757297574137.3125
+    method: GET
+    body:
+      mimeType: application/x-www-form-urlencoded
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.5.0
+    authentication:
+      type: bearer
+      prefix: Token
+      token: e87d5221f6df570a4bc9ce4560305a655d5ad091
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_421d4fa5135247ee56a9715cb2fbc62b45feeb78
+    created: 1757299011241
+    modified: 1757299011241
+environments:
+  name: Base Environment
+  meta:
+    id: env_421d4fa5135247ee56a9715cb2fbc62b45feeb78
+    created: 1757299011235
+    modified: 1757299011235
+    isPrivate: false

@@ -14,8 +14,8 @@ Customers can sort menu items by price ✅
 Admin can add categories ✅
 Customers (auth users) can browse all categories ✅
 
-Customers can add menu items to the cart
-Customers can access previously added items in the cart
+Customers can add menu items to the cart ✅
+Customers can access previously added items in the cart ✅
 
 Customers can place orders
 Customers can browse their own orders

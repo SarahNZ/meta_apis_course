@@ -1,3 +1,4 @@
+CART = "/api/cart/"
 CATEGORIES = "/api/categories/"
 DELIVERY_CREW = "/api/groups/delivery-crew/users/"
 LOGIN = "/auth/token/login/"  # Djoser login endpoint

@@ -1,0 +1,144 @@
+type: collection.insomnia.rest/5.0
+name: First Collection
+meta:
+  id: wrk_eb561dfc89254eab90cf0c08a7cf289e
+  created: 1754513092525
+  modified: 1754513092525
+  description: ""
+collection:
+  - url: https://httpbin.org/get?project=LittleLemon
+    name: First Request
+    meta:
+      id: req_0f7a698b9f4a47f9b0fbfed154608a75
+      created: 1754513174063
+      modified: 1754513330066
+      isPrivate: false
+      description: ""
+      sortKey: -1754513174063
+    method: GET
+    headers:
+      - name: User-Agent
+        value: insomnia/11.4.0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: https://httpbin.org/post
+    name: Second Request
+    meta:
+      id: req_1c206dad8eda4ffa82bd1f65f97073cf
+      created: 1754513490331
+      modified: 1754513792441
+      isPrivate: false
+      description: ""
+      sortKey: -1754513490331
+    method: POST
+    body:
+      mimeType: application/x-www-form-urlencoded
+      params:
+        - id: pair_c3c0eb8e54f54fb797e562402be119e1
+          name: project
+          value: LittleLemon
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: application/x-www-form-urlencoded
+      - name: User-Agent
+        value: insomnia/11.4.0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: https://httpbin.org/post
+    name: Post request using insomnia
+    meta:
+      id: req_2ee399bf1fb943da90a361f352832a8a
+      created: 1754533364105
+      modified: 1754534191574
+      isPrivate: false
+      description: ""
+      sortKey: -1754533364105
+    method: POST
+    body:
+      mimeType: multipart/form-data
+      params:
+        - id: pair_c8a3cf96867847a1980cd7783138d211
+          name: title
+          value: Lord of the Rings
+          description: ""
+          disabled: false
+        - id: pair_b57f14367bcb4715a582636e25209e76
+          name: author
+          value: JRR Tolkien
+          description: ""
+          disabled: false
+    headers:
+      - name: Content-Type
+        value: multipart/form-data
+      - name: User-Agent
+        value: insomnia/11.4.0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: https://httpbin.org/post
+    name: POST request using JSON object
+    meta:
+      id: req_9a44dc024ebc4eb3ae186dc8a95d47bd
+      created: 1754534301228
+      modified: 1754534610452
+      isPrivate: false
+      description: ""
+      sortKey: -1754534301228
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        		"title": "Lord of the Rings",
+        		"author": "JRR Tolkien",
+        		"published" : {
+        			"year": 1954,
+        			"month": "july",
+        			"day" : 29
+        			}
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: User-Agent
+        value: insomnia/11.4.0
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_bec58a8aba58932496fd0f931bfd2b7406b46da7
+    created: 1754513092537
+    modified: 1754513092537
+environments:
+  name: Base Environment
+  meta:
+    id: env_bec58a8aba58932496fd0f931bfd2b7406b46da7
+    created: 1754513092532
+    modified: 1754513092532
+    isPrivate: false
