@@ -117,11 +117,14 @@ class CartViewSet(viewsets.ViewSet):
         return Response(serializer.data)
     
     def create(self, request):
-        # Add a menu item to the cart or updated its quantity if it already exists
-        menu_item_id = request.data.get("menuitem")
-        quantity = int(request.data.get("quantity", 1))
+        # Use serializer for validation
+        serializer = CartSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        menu_item = get_object_or_404(MenuItem, id = menu_item_id)
+        # Extract validated data
+        menu_item = serializer.validated_data['menuitem']
+        quantity = serializer.validated_data['quantity']
         
         unit_price = menu_item.price 
         total_price = unit_price * quantity  
@@ -144,9 +147,10 @@ class CartViewSet(viewsets.ViewSet):
             # Save the updated values to the db
             cart_item.save()
             
-        serializer = CartSerializer(cart_item)
-        return Response(serializer.data, status = status.HTTP_201_CREATED)
-
+        # Use serializer for response
+        response_serializer = CartSerializer(cart_item)
+        return Response(response_serializer.data, status = status.HTTP_201_CREATED)
+    
     def destroy(self, request, pk = None):
         # Remove a specific item from the cart (I.e. Delete row from the Cart table)
         cart_item = get_object_or_404(Cart, user = request.user, pk = pk)

@@ -6,7 +6,8 @@
     - test_authenticated_user_can_add_multiple_quantities_and_different_items ✅
     - test_anon_user_cannot_view_or_add_to_cart ✅
     - test_auth_user_1_cannot_view_auth_user_2_cart ✅
-    - Make sure the user can only create one cart - is it possible to create 2?
+    - test_user_cannot_have_duplicate_cart_entries_for_same_menu_item ✅
+    - test_user_cannot_add_invalid_menuitems_ids_or_quantities_to_cart
 
 # === Update Cart Tests ===
     - test_authenticated_user_can_increase_quantity_of_menu_item_in_cart
