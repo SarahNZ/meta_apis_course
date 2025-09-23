@@ -16,64 +16,137 @@ from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer,
 # Note: A lot of the user management functionality is handled by Django and Djoser (token-based authentication)
     
 # Endpoint /api/groups/delivery-crew/users/
-@api_view(['GET','POST', 'DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
-def delivery_crew(request):
-    delivery_crew = get_object_or_404(Group, name = "Delivery Crew")
+class DeliveryCrewViewSet(viewsets.ViewSet):
+    """
+    ViewSet for managing users in the Delivery Crew group.
+    Requires admin privileges.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
     
-    if request.method == 'GET':
+    def list(self, request):
+        """List all users in the Delivery Crew group"""
+        delivery_crew = get_object_or_404(Group, name="Delivery Crew")
         delivery_users = delivery_crew.user_set.all()
-        serializer = UserSerializer(delivery_users, many = True)
+        serializer = UserSerializer(delivery_users, many=True)
         return Response(serializer.data)
-    elif request.method in ['POST', 'DELETE']:
+    
+    def create(self, request):
+        """Add a user to the Delivery Crew group"""
         username = request.data.get('username')
-        if username:
-            user = get_object_or_404(User, username = username)
-            if request.method == 'POST':
-                delivery_crew.user_set.add(user)
-                return Response({"message": "ok"}, status.HTTP_201_CREATED)
-            elif request.method == 'DELETE':
-                delivery_crew.user_set.remove(user)
-                return Response({"message": "ok"}, status.HTTP_200_OK)
-
-    # Other HTTP Methods such as PUT and PATCH methods are not supported
-    return Response({"message": "error"}, status.HTTP_400_BAD_REQUEST)
+        if not username:
+            return Response(
+                {"username": "This field is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        delivery_crew = get_object_or_404(Group, name="Delivery Crew")
+        user = get_object_or_404(User, username=username)
+        delivery_crew.user_set.add(user)
+        return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
+    
+    # Endpoint DELETE /api/groups/delivery-crew/users/{id}/
+    def destroy(self, request, pk=None):
+        # Use the pk parameter from the URL to identify the user
+        # Remove a user from the Delivery Crew group
+        if not pk:
+            return Response(
+                {"detail": "User ID is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Handle non-integer IDs gracefully
+        try:
+            user_id = int(pk)
+        except ValueError:
+            return Response(
+                {"detail": f"Invalid user ID format: {pk}"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        delivery_crew = get_object_or_404(Group, name="Delivery Crew")
+        user = get_object_or_404(User, id=user_id)
+        
+        # Check if user is actually in the delivery crew group
+        if not user.groups.filter(name="Delivery Crew").exists():
+            return Response(
+                {"detail": "User is not in the Delivery Crew group"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        delivery_crew.user_set.remove(user)
+        return Response({"message": "ok"}, status=status.HTTP_200_OK)
 
 # Endpoint /api/groups/manager/users/
-@api_view(['GET','POST', 'DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
-def managers(request):
-    username = request.data.get('username')
-    managers_group = Group.objects.get(name = "Manager")
-    if request.method == 'GET':
+class ManagerViewSet(viewsets.ViewSet):
+    """
+    ViewSet for managing users in the Manager group.
+    Requires admin privileges.
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    def list(self, request):
+        """List all users in the Manager group"""
+        managers_group = get_object_or_404(Group, name = "Manager")
         manager_users = managers_group.user_set.all()
-        serializer = UserSerializer(manager_users, many = True)
+        serializer = UserSerializer(manager_users, many=True)
         return Response(serializer.data)
-    if username:
-        user = get_object_or_404(User, username = username)
-        if request.method == 'POST':
-            managers_group.user_set.add(user)  
-            # Set user as staff when added to managers
-            user.is_staff = True
-            user.save()    
-            return Response({"message": "ok"}, status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
-            managers_group.user_set.remove(user)
-            # Remove staff status when user is removed from Managers group
-            user.is_staff = False
-            user.save()   
-            return Response({"message": "ok"}, status.HTTP_200_OK)
-
-    # Unsupported HTTP methods will return a 405 (and not hit the code below)
-    return Response({"message": "error"}, status.HTTP_400_BAD_REQUEST)
+    
+    def create(self, request):
+        """Add a user to the Manager group"""
+        username = request.data.get('username')
+        if not username:
+            return Response(
+                {"username": "This field is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        managers_group = get_object_or_404(Group, name="Manager")
+        user = get_object_or_404(User, username=username)
+        managers_group.user_set.add(user)
+        user.is_staff = True
+        user.save()
+        return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
+    
+    # Endpoint DELETE /api/groups/manager/users/{id}/
+    def destroy(self, request, pk=None):
+        # Use the pk parameter from the URL to identify the user
+        # Remove a user from the Manager group
+        if not pk:
+            return Response(
+                {"detail": "User ID is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Handle non-integer IDs gracefully
+        try:
+            user_id = int(pk)
+        except ValueError:
+            return Response(
+                {"detail": f"Invalid user ID format: {pk}"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        managers_group = get_object_or_404(Group, name="Manager")
+        user = get_object_or_404(User, id=user_id)
+        
+        # Check if user is actually in the manager group
+        if not user.groups.filter(name="Manager").exists():
+            return Response(
+                {"detail": "User is not in the Manager group"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        managers_group.user_set.remove(user)
+        user.is_staff = False
+        user.save()
+        return Response({"message": "ok"}, status=status.HTTP_200_OK)
+    
 
 # Endpoint /api/users/
-@api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
-def users(request):
-    all_users = User.objects.all()
-    serializer = UserSerializer(all_users, many = True)
-    return Response(serializer.data)
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
     
 # === Menu Item Views ===
 

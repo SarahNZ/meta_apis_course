@@ -70,39 +70,47 @@ class DeliveryCrewGroupTests(BaseAPITestCase):
         response = self.client.post(DELIVERY_CREW, {"username": "nonexistentuser"}, format = "json")
         self.assertEqual(response.status_code, 401) # Should return 401 Unauthenticated # type: ignore
         
-    # === Remove Users from the Manager Group Tests ===
+    # === Remove Users from the Delivery Crew Group Tests ===
 
     def test_manager_removes_user_from_delivery_crew_group(self):
-        # Add user2 to manager group first
+        # Add user2 to delivery crew group first
         response = self.client.post(DELIVERY_CREW, {"username": self.user2.username}, format = "json")
-        response = self.client.delete(DELIVERY_CREW, {"username": self.user2.username}, format = "json")
+        # Now delete using the id-based URL
+        user_id = self.user2.id
+        response = self.client.delete(f"{DELIVERY_CREW}{user_id}/")
         self.assertEqual(response.status_code, 200) # type: ignore
-        self.assertFalse(self.user2.groups.filter(name = "Manager").exists())
+        self.assertFalse(self.user2.groups.filter(name = "Delivery Crew").exists())
 
     def test_manager_cannot_remove_missing_user_from_delivery_crew_group(self):
-        # Create a user not in the manager group
+        # Create a user not in the delivery crew group
         missing_user = User.objects.create_user(username = "missinguser", password = self.password)
-        response = self.client.delete(DELIVERY_CREW, {"username": missing_user.username}, format = "json")
-        self.assertEqual(response.status_code, 200) # Should still return 200 OK    # type: ignore
-        self.assertFalse(missing_user.groups.filter(name = "Manager").exists())
+        # Now delete using the id-based URL
+        user_id = missing_user.id
+        response = self.client.delete(f"{DELIVERY_CREW}{user_id}/")
+        self.assertEqual(response.status_code, 404) # Should return 404 Not Found since user is not in the group # type: ignore
+        self.assertFalse(missing_user.groups.filter(name = "Delivery Crew").exists())
         
     def test_unauthorized_user_cannot_remove_user_from_delivery_crew_group(self):
-        # Add user2 to manager group first
-        self.user2.groups.add(self.manager_group)
+        # Ensure user2 is in the delivery crew group
+        self.user2.groups.add(self.delivery_crew_group)
         # Create and authenticate as non-manager user
         User.objects.create_user(username="unauthorized2", password=self.password)
         token = self.get_auth_token(username="unauthorized2", password=self.password)
         self.authenticate_client(token)
-        response = self.client.delete(DELIVERY_CREW, {"username": self.user2.username}, format="json")
+        # Now delete using the id-based URL
+        user_id = self.user2.id
+        response = self.client.delete(f"{DELIVERY_CREW}{user_id}/")
         self.assertEqual(response.status_code, 403) # Forbidden for non-managers # type: ignore
-        self.assertTrue(self.user2.groups.filter(name="Manager").exists())
+        self.assertTrue(self.user2.groups.filter(name="Delivery Crew").exists())
         
     def test_anonymous_user_cannot_remove_user_from_delivery_crew_group(self):
-        # Add user2 to manager group first
-        self.user2.groups.add(self.manager_group)
+        # Ensure user2 is in the delivery crew group
+        self.user2.groups.add(self.delivery_crew_group)
         # Unauthenticate the client
         self.client.logout()
-        response = self.client.delete(DELIVERY_CREW, {"username": "nonexistentuser"}, format = "json")
+        # Now delete using the id-based URL
+        user_id = self.user2.id
+        response = self.client.delete(f"{DELIVERY_CREW}{user_id}/")
         self.assertEqual(response.status_code, 401) # Should return 401 Unauthenticated # type: ignore
         
     # === Delivery Crew Input Validation Tests ===
@@ -123,18 +131,25 @@ class DeliveryCrewGroupTests(BaseAPITestCase):
         response = self.client.post(DELIVERY_CREW, {"user": self.user2.username}, format="json")
         self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
 
-    def test_remove_user_from_delivery_crew_missing_username(self):
-        response = self.client.delete(DELIVERY_CREW, {}, format="json")
-        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
-
-    def test_remove_user_from_delivery_crew_empty_username(self):
-        response = self.client.delete(DELIVERY_CREW, {"username": ""}, format="json")
-        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
-
-    def test_remove_user_from_delivery_crew_nonexistent_username(self):
-        response = self.client.delete(DELIVERY_CREW, {"username": "nonexistentuser"}, format="json")
+    def test_remove_user_from_delivery_crew_missing_id(self):
+        # Using an empty string as ID
+        response = self.client.delete(f"{DELIVERY_CREW}/")
         self.assertEqual(response.status_code, 404)  # Not Found # type: ignore
 
-    def test_remove_user_from_delivery_crew_invalid_field_name(self):
-        response = self.client.delete(DELIVERY_CREW, {"user": self.user2.username}, format="json")
-        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
+    def test_remove_user_from_delivery_crew_nonexistent_id(self):
+        # Using a nonexistent ID (99999)
+        response = self.client.delete(f"{DELIVERY_CREW}99999/")
+        self.assertEqual(response.status_code, 404)  # Not Found # type: ignore
+
+    def test_remove_user_from_delivery_crew_invalid_id(self):
+        # Using an invalid ID format
+        response = self.client.delete(f"{DELIVERY_CREW}invalid/")
+        self.assertEqual(response.status_code, 404)  # Not Found # type: ignore
+
+    def test_remove_user_not_in_delivery_crew_group(self):
+        # Create a user not in the delivery crew group
+        not_in_crew = User.objects.create_user(username="notincrew", password=self.password)
+        # Try to remove a user not in the delivery crew group
+        user_id = not_in_crew.id
+        response = self.client.delete(f"{DELIVERY_CREW}{user_id}/")
+        self.assertEqual(response.status_code, 404)  # Not Found # type: ignore

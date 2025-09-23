@@ -99,7 +99,9 @@ class ManagerGroupTests(BaseAPITestCase):
     def test_manager_removes_user_from_manager_group(self):
         # Add user2 to manager group first
         response = self.client.post(MANAGERS, {"username": self.user2.username}, format = "json")
-        response = self.client.delete(MANAGERS, {"username": self.user2.username}, format = "json")
+        # Now delete using the id-based URL
+        user_id = self.user2.id
+        response = self.client.delete(f"{MANAGERS}{user_id}/")
         self.assertEqual(response.status_code, 200) # type: ignore
         self.assertFalse(self.user2.groups.filter(name = "Manager").exists())
         
@@ -110,7 +112,9 @@ class ManagerGroupTests(BaseAPITestCase):
         User.objects.create_user(username="unauthorized2", password=self.password)
         token = self.get_auth_token(username="unauthorized2", password=self.password)
         self.authenticate_client(token)
-        response = self.client.delete(MANAGERS, {"username": self.user2.username}, format="json")
+        # Now delete using the id-based URL
+        user_id = self.user2.id
+        response = self.client.delete(f"{MANAGERS}{user_id}/")
         self.assertEqual(response.status_code, 403) # Forbidden for non-managers # type: ignore
         self.assertTrue(self.user2.groups.filter(name="Manager").exists())
         
@@ -119,7 +123,9 @@ class ManagerGroupTests(BaseAPITestCase):
         self.user2.groups.add(self.manager_group)
         # Unauthenticate the client
         self.client.logout()
-        response = self.client.delete(MANAGERS, {"username": "nonexistentuser"}, format = "json")
+        # Now delete using the id-based URL
+        user_id = self.user2.id
+        response = self.client.delete(f"{MANAGERS}{user_id}/")
         self.assertEqual(response.status_code, 401) # Should return 401 Unauthenticated # type: ignore
     
     # === Manager Group Input Validation Tests ===
@@ -140,18 +146,23 @@ class ManagerGroupTests(BaseAPITestCase):
         response = self.client.post(MANAGERS, {"user": self.user2.username}, format="json")
         self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
 
-    def test_remove_user_from_manager_group_missing_username(self):
-        response = self.client.delete(MANAGERS, {}, format="json")
-        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
-
-    def test_remove_user_from_manager_group_empty_username(self):
-        response = self.client.delete(MANAGERS, {"username": ""}, format="json")
-        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
-
-    def test_remove_user_from_manager_group_nonexistent_username(self):
-        response = self.client.delete(MANAGERS, {"username": "nonexistentuser"}, format="json")
+    def test_remove_user_from_manager_group_missing_id(self):
+        # Using an empty string as ID
+        response = self.client.delete(f"{MANAGERS}/")
         self.assertEqual(response.status_code, 404)  # Not Found # type: ignore
 
-    def test_remove_user_from_manager_group_invalid_field_name(self):
-        response = self.client.delete(MANAGERS, {"user": self.user2.username}, format="json")
-        self.assertEqual(response.status_code, 400)  # Bad Request # type: ignore
+    def test_remove_user_from_manager_group_nonexistent_id(self):
+        # Using a nonexistent ID (99999)
+        response = self.client.delete(f"{MANAGERS}99999/")
+        self.assertEqual(response.status_code, 404)  # Not Found # type: ignore
+
+    def test_remove_user_from_manager_group_invalid_id(self):
+        # Using an invalid ID format
+        response = self.client.delete(f"{MANAGERS}invalid/")
+        self.assertEqual(response.status_code, 404)  # Not Found # type: ignore
+
+    def test_remove_user_not_in_manager_group(self):
+        # Try to remove a user not in the manager group
+        user_id = self.user3.id  # user3 is not in manager group
+        response = self.client.delete(f"{MANAGERS}{user_id}/")
+        self.assertEqual(response.status_code, 404)  # Not Found # type: ignore
