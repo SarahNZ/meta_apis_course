@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -247,6 +248,33 @@ class CartTests(BaseAPITestCase):
         self.assertEqual(
             Cart.objects.get(user=self.user1, menuitem=menu_item).quantity, 1
         )
+        
+    # === Cart Isolation Tests ===  
+      
+    def test_authenticated_user_cannot_view_another_users_cart(self):
+        # Arrange: Setup menu items
+        menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
+        
+        # Arrange: User1 adds items to their cart
+        data_1 = {"menuitem": menu_item_1.id, "quantity": 1}    # type: ignore
+        self.client.post(CART, data_1, format="json")
+        
+        # Verify user1's cart has 1 item
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(len(response.json()), 1)  # type: ignore
+        
+        # Arrange: Create user2 and authenticate as user2
+        self.user2 = User.objects.create_user(username="user2", password="password123")
+        user2_client = APIClient()
+        user2_token = self.get_auth_token(username="user2", password="password123")
+        user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
+        
+        # Act & Assert: User2 cannot view user1's cart (should see empty cart)
+        response = user2_client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore, user2's cart should be empty
+        
 
     # === Delete Cart Tests ===
    
@@ -299,3 +327,77 @@ class CartTests(BaseAPITestCase):
         self.assertEqual(
             Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 0
         )
+        
+    # === Cart Isolation Tests ===  
+      
+    # def test_authenticated_user_cannot_access_another_users_cart(self):
+    #     # Arrange: Setup menu items
+    #     menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
+    #     menu_item_2 = get_object_or_404(MenuItem, title="Pepperoni")
+        
+    #     # Arrange: User1 adds items to their cart
+    #     self.client.force_authenticate(user=self.user1)
+    #     data_1 = {"menuitem": menu_item_1.id, "quantity": 2}    # type: ignore
+    #     data_2 = {"menuitem": menu_item_2.id, "quantity": 1}    # type: ignore
+    #     self.client.post(CART, data_1, format="json")
+    #     self.client.post(CART, data_2, format="json")
+        
+    #     # Verify user1's cart has 2 items
+    #     response = self.client.get(CART)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+    #     self.assertEqual(len(response.json()), 2)  # type: ignore
+        
+    #     # Arrange: Create and authenticate as user2
+    #     user2_client.credentials()
+    #     user2_token = self.get_auth_token(username="user2", password="password123")
+    #     user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
+        
+    #     # Act & Assert: User2 cannot view user1's cart (should see empty cart)
+    #     response = user2_client.get(CART)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+    #     self.assertEqual(response.json(), [])  # type: ignore, user2's cart should be empty
+        
+    #     # Act & Assert: User2 can add their own items (cart isolation)
+    #     data_3 = {"menuitem": menu_item_1.id, "quantity": 3}    # type: ignore
+    #     response = user2_client.post(CART, data_3, format="json")
+    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+    #     # Act & Assert: User2's cart only shows their own item
+    #     response = user2_client.get(CART)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+    #     user2_cart = response.json()  # type: ignore
+    #     self.assertEqual(len(user2_cart), 1)  # type: ignore
+    #     self.assertEqual(user2_cart[0]["quantity"], 3)  # type: ignore
+        
+    #     # Act & Assert: User2 cannot delete user1's cart items by ID
+    #     url = f"{CART}{menu_item_1.id}/"
+    #     response = user2_client.delete(url)
+    #     # This should either delete user2's item or return 404 (depending on implementation)
+    #     # But it should NOT delete user1's item
+        
+    #     # Act & Assert: User1's cart remains unchanged
+    #     self.client.force_authenticate(user=self.user1)
+    #     response = self.client.get(CART)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+    #     user1_cart = response.json()  # type: ignore
+    #     # User1 should still have their original items (unless user2 deleted their own)
+    #     user1_margherita = next((item for item in user1_cart if item["menuitem"] == menu_item_1.id), None)    # type: ignore
+    #     if user1_margherita:  # If user1's Margherita item still exists
+    #         self.assertEqual(user1_margherita["quantity"], 2)  # type: ignore, should be unchanged
+        
+    #     # Act & Assert: User2 cannot clear user1's entire cart
+    #     user2_client.delete(f"{CART}clear/")
+        
+    #     # Verify user1's cart is still intact after user2's clear attempt
+    #     self.client.force_authenticate(user=self.user1)
+    #     response = self.client.get(CART)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        
+    #     # Database-level checks: Verify cart isolation
+    #     user1_cart_count = Cart.objects.filter(user=self.user1).count()
+    #     user2_cart_count = Cart.objects.filter(user=self.user2).count()
+        
+    #     # User1 should have their original items (2 initially, minus any that user2 might have "deleted" of their own)
+    #     self.assertGreaterEqual(user1_cart_count, 1)  # type: ignore, at least one item should remain
+    #     # User2 should have at most 1 item (what they added, minus what they might have deleted)
+    #     self.assertLessEqual(user2_cart_count, 1)  # type: ignore

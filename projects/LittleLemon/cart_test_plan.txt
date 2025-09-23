@@ -5,7 +5,16 @@
     - test_authenticated_user_can_add_same_item_twice ✅
     - test_authenticated_user_can_add_multiple_quantities_and_different_items ✅
     - test_anon_user_cannot_view_or_add_to_cart ✅
-    - test_auth_user_1_cannot_view_auth_user_2_cart - TODO
+    - test_auth_user_1_cannot_view_auth_user_2_cart ✅
+    - Make sure the user can only create one cart - is it possible to create 2?
+
+# === Update Cart Tests ===
+    - test_authenticated_user_can_increase_quantity_of_menu_item_in_cart
+    - test_authenticated_user_can_decrease_quanity_of_menu_item_in_cart
+    - test_authenticated_user_can_increase_quantity_of_one_menu_item_in_cart
+    - test_authenticated_user_can_increase_quantities_of_different_menu_items_in_cart
+    - test_authenticated_user_can_increase_quantity_of_menu_item_and_decrease_quantity_of_another
+    - Check that authenticated user can't edit the price of menu items in their cart
 
 # === Delete Cart Tests ===
     - test_authenticated_user_cannot_delete_item_not_in_cart - TODO
@@ -22,6 +31,3 @@
     - test_authenticated_user_clears_cart_of_two_different_cart_items - TODO
     - test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item - TODO
     - test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items - TODO
-
-What about put and patch? - TODO
-Make sure users can't set their own price - must be read-only to clients - TODO

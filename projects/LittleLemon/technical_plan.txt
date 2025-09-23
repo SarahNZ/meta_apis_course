@@ -207,6 +207,7 @@ CREATE TEST USERS AND GROUPS ✅
             - Check valid action & try to create more than one cart
             - Check customer can't edit another customer's cart
         - One cart can have 1 or many items
+        - Test cart functinality in Insomnia and create automated tests for important test cases - Up to here!
 
     * ORDER MANAGEMENT
 
