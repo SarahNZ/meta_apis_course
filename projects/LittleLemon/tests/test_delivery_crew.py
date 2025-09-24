@@ -47,7 +47,9 @@ class DeliveryCrewGroupTests(BaseAPITestCase):
 # === Add Users to the Delivery Crew Group Tests ===
         
     def test_manager_adds_user_to_delivery_crew_group(self):
-        response = self.client.post(DELIVERY_CREW, {"username": self.user2.username}, format = "json")
+        # Create a new user to add to the delivery crew group
+        self.delivery_user = User.objects.create_user(username = "delivery_user", password = self.password)
+        response = self.client.post(DELIVERY_CREW, {"username": self.delivery_user.username}, format = "json")
         self.assertEqual(response.status_code, 201) # type: ignore
         self.assertTrue(self.user2.groups.filter(name = "Delivery Crew").exists())
         

@@ -1,3 +1,4 @@
+import logging
 from django.contrib.auth.models import User, Group
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -11,6 +12,7 @@ from .pagination import CustomPageNumberPagination
 from .permissions import IsStaffOrReadOnly
 from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, UserSerializer
 
+logger = logging.getLogger('LittleLemonAPI')
 
 class UserGroupManagementMixin:
     """
@@ -29,6 +31,7 @@ class UserGroupManagementMixin:
     def validate_user_id(self, pk):
         """Helper method to validate and convert user ID"""
         if not pk:
+            logger.warning(f"Group management attempt with missing user ID for group: {self.group_name}")
             return None, Response(
                 {"detail": "User ID is required"},
                 status=status.HTTP_400_BAD_REQUEST
@@ -37,6 +40,7 @@ class UserGroupManagementMixin:
         try:
             return int(pk), None
         except ValueError:
+            logger.warning(f"Invalid user ID format '{pk}' for group: {self.group_name}")
             return None, Response(
                 {"detail": f"Invalid user ID format: {pk}"},
                 status=status.HTTP_404_NOT_FOUND
@@ -46,6 +50,7 @@ class UserGroupManagementMixin:
         """Helper method to validate username from request data"""
         username = request.data.get('username', '').strip()
         if not username:
+            logger.warning(f"Group management attempt with missing username for group: {self.group_name}")
             return None, Response(
                 {"username": "This field is required"}, 
                 status=status.HTTP_400_BAD_REQUEST
@@ -56,6 +61,10 @@ class UserGroupManagementMixin:
         """List all users in the group"""
         group = self.get_group()
         users = group.user_set.all()
+        user_count = users.count()
+        
+        logger.info(f"User '{request.user.username}' viewed {user_count} users in {self.group_name} group")
+        
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
     
@@ -65,16 +74,30 @@ class UserGroupManagementMixin:
         if error_response:
             return error_response
         
-        group = self.get_group()
-        user = get_object_or_404(User, username=username)
-        group.user_set.add(user)
-        
-        # Update staff status if needed (for Manager group)
-        if self.updates_staff_status:
-            user.is_staff = True
-            user.save()
-        
-        return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
+        try:
+            group = self.get_group()
+            user = get_object_or_404(User, username=username)
+            
+            # Check if user is already in group
+            if user.groups.filter(name=self.group_name).exists():
+                logger.info(f"User '{request.user.username}' attempted to add '{username}' to {self.group_name} group, but user was already in group")
+                return Response({"message": f"User '{username}' is already in the {self.group_name} group"}, status=status.HTTP_200_OK)
+            
+            group.user_set.add(user)
+            
+            # Update staff status if needed (for Manager group)
+            if self.updates_staff_status:
+                user.is_staff = True
+                user.save()
+                logger.info(f"User '{username}' granted staff status")
+            
+            logger.info(f"SUCCESS: User '{request.user.username}' added '{username}' to {self.group_name} group")
+            
+            return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"ERROR: Failed to add user '{username}' to {self.group_name} group by '{request.user.username}': {str(e)}")
+            raise
     
     def remove_user_from_group(self, request, pk=None):
         """Remove a user from the group"""
@@ -82,24 +105,33 @@ class UserGroupManagementMixin:
         if error_response:
             return error_response
         
-        group = self.get_group()
-        user = get_object_or_404(User, id=user_id)
-        
-        # Check if user is in the group
-        if not user.groups.filter(name=self.group_name).exists():
-            return Response(
-                {"detail": f"User is not in the {self.group_name} group"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        group.user_set.remove(user)
-        
-        # Update staff status if needed (for Manager group)
-        if self.updates_staff_status:
-            user.is_staff = False
-            user.save()
-        
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            group = self.get_group()
+            user = get_object_or_404(User, id=user_id)
+            
+            # Check if user is in the group
+            if not user.groups.filter(name=self.group_name).exists():
+                logger.warning(f"User '{request.user.username}' attempted to remove user ID {user_id} ('{user.username}') from {self.group_name} group, but user was not in group")
+                return Response(
+                    {"detail": f"User is not in the {self.group_name} group"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            group.user_set.remove(user)
+            
+            # Update staff status if needed (for Manager group)
+            if self.updates_staff_status:
+                user.is_staff = False
+                user.save()
+                logger.info(f"User '{user.username}' staff status revoked")
+            
+            logger.info(f"SUCCESS: User '{request.user.username}' removed '{user.username}' (ID: {user_id}) from {self.group_name} group")
+            
+            return Response(status=status.HTTP_204_NO_CONTENT)
+            
+        except Exception as e:
+            logger.error(f"ERROR: Failed to remove user ID {user_id} from {self.group_name} group by '{request.user.username}': {str(e)}")
+            raise
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -201,6 +233,18 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
     search_fields = ['title']
     ordering_fields = ['price', 'title', 'category__title'] # allow client to specify ordering by price
     filterset_class = MenuItemFilter
+    
+    def perform_create(self, serializer):
+        """Override to add logging when menu items are created"""
+        menu_item = serializer.save()
+        logger.info(f"SUCCESS: User '{self.request.user.username}' created menu item '{menu_item.title}' (ID: {menu_item.id}, Price: ${menu_item.price})")
+    
+    def perform_destroy(self, instance):
+        """Override to add logging when menu items are deleted"""
+        item_title = instance.title
+        item_id = instance.id
+        instance.delete()
+        logger.info(f"SUCCESS: User '{self.request.user.username}' deleted menu item '{item_title}' (ID: {item_id})")
 
 
 class CategoriesViewSet(viewsets.ModelViewSet):
@@ -247,6 +291,10 @@ class CartViewSet(viewsets.ViewSet):
         List all menu items in the authenticated user's cart. If empty, return []
         """
         queryset = Cart.objects.filter(user = request.user)
+        item_count = queryset.count()
+        
+        logger.info(f"User '{request.user.username}' viewed cart with {item_count} items")
+        
         serializer = CartSerializer(queryset, many = True)
         return Response(serializer.data)
     
@@ -257,11 +305,14 @@ class CartViewSet(viewsets.ViewSet):
         # Use serializer for validation
         serializer = CartSerializer(data=request.data)
         if not serializer.is_valid():
+            logger.warning(f"User '{request.user.username}' attempted to add invalid item to cart: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         # Extract validated data
         menu_item = serializer.validated_data['menuitem']
         quantity = serializer.validated_data['quantity']
+        
+        logger.info(f"User '{request.user.username}' adding {quantity}x '{menu_item.title}' to cart")
         
         unit_price = menu_item.price 
         total_price = unit_price * quantity  
@@ -279,13 +330,19 @@ class CartViewSet(viewsets.ViewSet):
         
         # If this menu item already existed in the user's cart
         if not created:
+            old_quantity = cart_item.quantity
             # Update quantity instead of creating duplicate
             cart_item.quantity += quantity  
             # Recalculate the total price for the row
             cart_item.price = cart_item.unit_price * cart_item.quantity
             # Save the updated values to the db
             cart_item.save()
+            logger.info(f"Updated existing cart item: '{menu_item.title}' quantity from {old_quantity} to {cart_item.quantity}")
+        else:
+            logger.info(f"Created new cart item: {quantity}x '{menu_item.title}'")
             
+        logger.info(f"SUCCESS: User '{request.user.username}' added {quantity}x '{menu_item.title}' to cart")
+        
         # Use serializer for response
         response_serializer = CartSerializer(cart_item)
         return Response(response_serializer.data, status = status.HTTP_201_CREATED)
@@ -294,9 +351,20 @@ class CartViewSet(viewsets.ViewSet):
         """
         Remove a specific menu item from the cart
         """
-        cart_item = get_object_or_404(Cart, user = request.user, pk = pk)
-        cart_item.delete()
-        return Response(status = status.HTTP_204_NO_CONTENT)
+        try:
+            cart_item = get_object_or_404(Cart, user = request.user, pk = pk)
+            item_name = cart_item.menuitem.title
+            quantity = cart_item.quantity
+            
+            cart_item.delete()
+            
+            logger.info(f"SUCCESS: User '{request.user.username}' removed {quantity}x '{item_name}' from cart")
+            
+            return Response(status = status.HTTP_204_NO_CONTENT)
+            
+        except Exception as e:
+            logger.error(f"ERROR: User '{request.user.username}' failed to remove item {pk} from cart: {str(e)}")
+            raise
     
     @action(detail = False, methods = ['delete'])
     def clear(self, request):
@@ -304,5 +372,9 @@ class CartViewSet(viewsets.ViewSet):
         Clear all items from the user's cart
         
         """
+        items_count = Cart.objects.filter(user = request.user).count()
         Cart.objects.filter(user = request.user).delete()
+        
+        logger.info(f"SUCCESS: User '{request.user.username}' cleared {items_count} items from cart")
+        
         return Response(status = status.HTTP_204_NO_CONTENT)
