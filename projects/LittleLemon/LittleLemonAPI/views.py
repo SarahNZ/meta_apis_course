@@ -12,6 +12,96 @@ from .permissions import IsStaffOrReadOnly
 from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, UserSerializer
 
 
+class UserGroupManagementMixin:
+    """
+    Mixin that provides common functionality for managing users in groups.
+    Subclasses must define group_name attribute.
+    """
+    group_name = None  # Must be set by subclass
+    updates_staff_status = False  # Set to True for Manager group
+    
+    def get_group(self):
+        """Helper method to get the group object"""
+        if not self.group_name:
+            raise ValueError("group_name must be set in subclass")
+        return get_object_or_404(Group, name=self.group_name)
+    
+    def validate_user_id(self, pk):
+        """Helper method to validate and convert user ID"""
+        if not pk:
+            return None, Response(
+                {"detail": "User ID is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            return int(pk), None
+        except ValueError:
+            return None, Response(
+                {"detail": f"Invalid user ID format: {pk}"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    def validate_username(self, request):
+        """Helper method to validate username from request data"""
+        username = request.data.get('username', '').strip()
+        if not username:
+            return None, Response(
+                {"username": "This field is required"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return username, None
+    
+    def list_group_users(self, request):
+        """List all users in the group"""
+        group = self.get_group()
+        users = group.user_set.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+    
+    def add_user_to_group(self, request):
+        """Add a user to the group"""
+        username, error_response = self.validate_username(request)
+        if error_response:
+            return error_response
+        
+        group = self.get_group()
+        user = get_object_or_404(User, username=username)
+        group.user_set.add(user)
+        
+        # Update staff status if needed (for Manager group)
+        if self.updates_staff_status:
+            user.is_staff = True
+            user.save()
+        
+        return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
+    
+    def remove_user_from_group(self, request, pk=None):
+        """Remove a user from the group"""
+        user_id, error_response = self.validate_user_id(pk)
+        if error_response:
+            return error_response
+        
+        group = self.get_group()
+        user = get_object_or_404(User, id=user_id)
+        
+        # Check if user is in the group
+        if not user.groups.filter(name=self.group_name).exists():
+            return Response(
+                {"detail": f"User is not in the {self.group_name} group"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        group.user_set.remove(user)
+        
+        # Update staff status if needed (for Manager group)
+        if self.updates_staff_status:
+            user.is_staff = False
+            user.save()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for authorized, staff users to view all users: GET /api/users/
@@ -25,39 +115,28 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
 
-class DeliveryCrewViewSet(viewsets.ViewSet):
+class DeliveryCrewViewSet(UserGroupManagementMixin, viewsets.ViewSet):
     """
     ViewSet for managing users in the Delivery Crew group. 
     Requires admin privileges
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+    group_name = "Delivery Crew"
+    updates_staff_status = False  # Delivery crew doesn't get staff status
     
     def list(self, request):
         """
         List all users in the Delivery Crew group
         GET /api/groups/delivery-crew/users/
         """
-        delivery_crew = get_object_or_404(Group, name="Delivery Crew")
-        delivery_users = delivery_crew.user_set.all()
-        serializer = UserSerializer(delivery_users, many=True)
-        return Response(serializer.data)
+        return self.list_group_users(request)
     
     def create(self, request):
         """
         Add authorized user to delivery crew group
         POST /api/groups/delivery-crew/users/ (username in body)
         """
-        username = request.data.get('username', '').strip()
-        if not username:  # This catches both None and empty/whitespace strings
-            return Response(
-                {"username": "This field is required"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        delivery_crew = get_object_or_404(Group, name="Delivery Crew")
-        user = get_object_or_404(User, username=username)
-        delivery_crew.user_set.add(user)
-        return Response({"message": f"User '{username}' was successfully added to Delivery Crew group"}, status=status.HTTP_201_CREATED)
+        return self.add_user_to_group(request)
     
     def destroy(self, request, pk=None):
         """
@@ -65,70 +144,31 @@ class DeliveryCrewViewSet(viewsets.ViewSet):
         DELETE /api/groups/delivery-crew/users/{id}/
         Use the pk (id) parameter from the URL to identify the user
         """
-        if not pk:
-            return Response(
-                {"detail": "User ID is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        # Handle non-integer IDs gracefully
-        try:
-            user_id = int(pk)
-        except ValueError:
-            return Response(
-                {"detail": f"Invalid user ID format: {pk}"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-            
-        delivery_crew = get_object_or_404(Group, name="Delivery Crew")
-        user = get_object_or_404(User, id=user_id)
-        
-        # Check if user is actually in the delivery crew group
-        if not user.groups.filter(name="Delivery Crew").exists():
-            return Response(
-                {"detail": "User is not in the Delivery Crew group"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-            
-        delivery_crew.user_set.remove(user)
-        return Response({"message": f"User with id '{user_id}' was successfully removed from the Delivery Crew group"}, status=status.HTTP_204_NO_CONTENT)
+        return self.remove_user_from_group(request, pk)
 
 
-class ManagerViewSet(viewsets.ViewSet):
+class ManagerViewSet(UserGroupManagementMixin, viewsets.ViewSet):
     """
     ViewSet for managing users in the Manager group. 
     Requires admin privileges
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
+    group_name = "Manager"
+    updates_staff_status = True  # Managers get staff status
     
     def list(self, request):
         """
         List all users in the Manager group.
         GET /api/groups/manager/users/
         """
-        managers_group = get_object_or_404(Group, name = "Manager")
-        manager_users = managers_group.user_set.all()
-        serializer = UserSerializer(manager_users, many=True)
-        return Response(serializer.data)
+        return self.list_group_users(request)
     
     def create(self, request):
         """
         Add a user to the Manager group
         POST /api/groups/manager/users/ (include username in body)
         """
-        username = request.data.get('username', '').strip()
-        if not username:  # This catches both None and empty/whitespace strings
-            return Response(
-                {"username": "This field is required"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        managers_group = get_object_or_404(Group, name="Manager")
-        user = get_object_or_404(User, username=username)
-        managers_group.user_set.add(user)
-        user.is_staff = True
-        user.save()
-        return Response({"message": f"User '{username}' was successfully added to the Manager group"}, status=status.HTTP_201_CREATED)
+        return self.add_user_to_group(request)
     
     def destroy(self, request, pk=None):
         """
@@ -136,35 +176,7 @@ class ManagerViewSet(viewsets.ViewSet):
         DELETE /api/groups/manager/users/{id}
         Use the pk (id) parameter from the URL to identify the user
         """
-        if not pk:
-            return Response(
-                {"detail": "User ID is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        # Handle non-integer IDs gracefully
-        try:
-            user_id = int(pk)
-        except ValueError:
-            return Response(
-                {"detail": f"Invalid user ID format: {pk}"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-            
-        managers_group = get_object_or_404(Group, name="Manager")
-        user = get_object_or_404(User, id=user_id)
-        
-        # Check if user is actually in the manager group
-        if not user.groups.filter(name="Manager").exists():
-            return Response(
-                {"detail": "User is not in the Manager group"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-            
-        managers_group.user_set.remove(user)
-        user.is_staff = False
-        user.save()
-        return Response({"message": f"User with id '{user_id}' was successfully removed from the Delivery Crew group"}, status=status.HTTP_204_NO_CONTENT)
+        return self.remove_user_from_group(request, pk)
 
 class MenuItemsViewSet(viewsets.ModelViewSet):
     """
