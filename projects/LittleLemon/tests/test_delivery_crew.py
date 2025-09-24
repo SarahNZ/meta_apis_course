@@ -78,7 +78,7 @@ class DeliveryCrewGroupTests(BaseAPITestCase):
         # Now delete using the id-based URL
         user_id = self.user2.id
         response = self.client.delete(f"{DELIVERY_CREW}{user_id}/")
-        self.assertEqual(response.status_code, 200) # type: ignore
+        self.assertEqual(response.status_code, 204) # type: ignore
         self.assertFalse(self.user2.groups.filter(name = "Delivery Crew").exists())
 
     def test_manager_cannot_remove_missing_user_from_delivery_crew_group(self):

@@ -47,8 +47,8 @@ class DeliveryCrewViewSet(viewsets.ViewSet):
         Add authorized user to delivery crew group
         POST /api/groups/delivery-crew/users/ (username in body)
         """
-        username = request.data.get('username')
-        if not username:
+        username = request.data.get('username', '').strip()
+        if not username:  # This catches both None and empty/whitespace strings
             return Response(
                 {"username": "This field is required"}, 
                 status=status.HTTP_400_BAD_REQUEST
@@ -57,7 +57,7 @@ class DeliveryCrewViewSet(viewsets.ViewSet):
         delivery_crew = get_object_or_404(Group, name="Delivery Crew")
         user = get_object_or_404(User, username=username)
         delivery_crew.user_set.add(user)
-        return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
+        return Response({"message": f"User '{username}' was successfully added to Delivery Crew group"}, status=status.HTTP_201_CREATED)
     
     def destroy(self, request, pk=None):
         """
@@ -91,7 +91,7 @@ class DeliveryCrewViewSet(viewsets.ViewSet):
             )
             
         delivery_crew.user_set.remove(user)
-        return Response({"message": "ok"}, status=status.HTTP_200_OK)
+        return Response({"message": f"User with id '{user_id}' was successfully removed from the Delivery Crew group"}, status=status.HTTP_204_NO_CONTENT)
 
 
 class ManagerViewSet(viewsets.ViewSet):
@@ -116,8 +116,8 @@ class ManagerViewSet(viewsets.ViewSet):
         Add a user to the Manager group
         POST /api/groups/manager/users/ (include username in body)
         """
-        username = request.data.get('username')
-        if not username:
+        username = request.data.get('username', '').strip()
+        if not username:  # This catches both None and empty/whitespace strings
             return Response(
                 {"username": "This field is required"}, 
                 status=status.HTTP_400_BAD_REQUEST
@@ -128,7 +128,7 @@ class ManagerViewSet(viewsets.ViewSet):
         managers_group.user_set.add(user)
         user.is_staff = True
         user.save()
-        return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
+        return Response({"message": f"User '{username}' was successfully added to the Manager group"}, status=status.HTTP_201_CREATED)
     
     def destroy(self, request, pk=None):
         """
@@ -164,13 +164,12 @@ class ManagerViewSet(viewsets.ViewSet):
         managers_group.user_set.remove(user)
         user.is_staff = False
         user.save()
-        return Response({"message": "ok"}, status=status.HTTP_200_OK)
-
+        return Response({"message": f"User with id '{user_id}' was successfully removed from the Delivery Crew group"}, status=status.HTTP_204_NO_CONTENT)
 
 class MenuItemsViewSet(viewsets.ModelViewSet):
     """
     Viewset for managing menu items.
-    All actions require authorization (only ataff can add or remove menu items)
+    All actions require authorization (only staff can add or remove menu items)
     
     View all menu items: GET /api/menu-items/
     Specify number of items listed per page: GET /api/menu-items/?page_size={int}
@@ -201,7 +200,7 @@ class CategoriesViewSet(viewsets.ModelViewSet):
     View all categories: GET /api/categories/
     Search by title: GET /api/categories/?search={string}
     Sort categories by title: GET /api/categories/?ordering=title
-    Add category: POST /api/categories/ (include title, price, featured and category_id in body)
+    Add category: POST /api/categories/ (include slug and title in body)
     """
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -225,7 +224,7 @@ class CartViewSet(viewsets.ViewSet):
     
     View cart: GET /api/cart/
     Add menu item to cart: POST /api/cart/ (include menuitem and quantity in body)
-    Remove menu item: DELETE /api/menu-items/{id}/
+    Remove menu item from cart: DELETE /api/cart/{id}/
     Clear cart (of all menu items): DELETE /api/cart/clear/
     """
     

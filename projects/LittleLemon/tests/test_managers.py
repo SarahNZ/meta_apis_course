@@ -102,7 +102,7 @@ class ManagerGroupTests(BaseAPITestCase):
         # Now delete using the id-based URL
         user_id = self.user2.id
         response = self.client.delete(f"{MANAGERS}{user_id}/")
-        self.assertEqual(response.status_code, 200) # type: ignore
+        self.assertEqual(response.status_code, 204) # type: ignore
         self.assertFalse(self.user2.groups.filter(name = "Manager").exists())
         
     def test_unauthorized_user_cannot_remove_user_from_manager_group(self):
