@@ -11,27 +11,42 @@ from .pagination import CustomPageNumberPagination
 from .permissions import IsStaffOrReadOnly
 from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, UserSerializer
 
-# === User Management Views ===
 
-# Note: A lot of the user management functionality is handled by Django and Djoser (token-based authentication)
-    
-# Endpoint /api/groups/delivery-crew/users/
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for authorized, staff users to view all users: GET /api/users/
+
+    Note: User creation and token-based login handled by Djoser via /auth/ endpoint. I.e.
+    - Create user: POST /auth/users (username and password in body, email optional)
+    - Get authorized user token: POST /auth/token/login/ (username and password in body)
+
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
 class DeliveryCrewViewSet(viewsets.ViewSet):
     """
-    ViewSet for managing users in the Delivery Crew group.
-    Requires admin privileges.
+    ViewSet for managing users in the Delivery Crew group. 
+    Requires admin privileges
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     
     def list(self, request):
-        """List all users in the Delivery Crew group"""
+        """
+        List all users in the Delivery Crew group
+        GET /api/groups/delivery-crew/users/
+        """
         delivery_crew = get_object_or_404(Group, name="Delivery Crew")
         delivery_users = delivery_crew.user_set.all()
         serializer = UserSerializer(delivery_users, many=True)
         return Response(serializer.data)
     
     def create(self, request):
-        """Add a user to the Delivery Crew group"""
+        """
+        Add authorized user to delivery crew group
+        POST /api/groups/delivery-crew/users/ (username in body)
+        """
         username = request.data.get('username')
         if not username:
             return Response(
@@ -44,10 +59,12 @@ class DeliveryCrewViewSet(viewsets.ViewSet):
         delivery_crew.user_set.add(user)
         return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
     
-    # Endpoint DELETE /api/groups/delivery-crew/users/{id}/
     def destroy(self, request, pk=None):
-        # Use the pk parameter from the URL to identify the user
-        # Remove a user from the Delivery Crew group
+        """
+        Remove a user from the delivery crew group
+        DELETE /api/groups/delivery-crew/users/{id}/
+        Use the pk (id) parameter from the URL to identify the user
+        """
         if not pk:
             return Response(
                 {"detail": "User ID is required"},
@@ -76,23 +93,29 @@ class DeliveryCrewViewSet(viewsets.ViewSet):
         delivery_crew.user_set.remove(user)
         return Response({"message": "ok"}, status=status.HTTP_200_OK)
 
-# Endpoint /api/groups/manager/users/
+
 class ManagerViewSet(viewsets.ViewSet):
     """
-    ViewSet for managing users in the Manager group.
-    Requires admin privileges.
+    ViewSet for managing users in the Manager group. 
+    Requires admin privileges
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     
     def list(self, request):
-        """List all users in the Manager group"""
+        """
+        List all users in the Manager group.
+        GET /api/groups/manager/users/
+        """
         managers_group = get_object_or_404(Group, name = "Manager")
         manager_users = managers_group.user_set.all()
         serializer = UserSerializer(manager_users, many=True)
         return Response(serializer.data)
     
     def create(self, request):
-        """Add a user to the Manager group"""
+        """
+        Add a user to the Manager group
+        POST /api/groups/manager/users/ (include username in body)
+        """
         username = request.data.get('username')
         if not username:
             return Response(
@@ -107,10 +130,12 @@ class ManagerViewSet(viewsets.ViewSet):
         user.save()
         return Response({"message": "ok"}, status=status.HTTP_201_CREATED)
     
-    # Endpoint DELETE /api/groups/manager/users/{id}/
     def destroy(self, request, pk=None):
-        # Use the pk parameter from the URL to identify the user
-        # Remove a user from the Manager group
+        """
+        Remove a user from the Manager group
+        DELETE /api/groups/manager/users/{id}
+        Use the pk (id) parameter from the URL to identify the user
+        """
         if not pk:
             return Response(
                 {"detail": "User ID is required"},
@@ -140,18 +165,22 @@ class ManagerViewSet(viewsets.ViewSet):
         user.is_staff = False
         user.save()
         return Response({"message": "ok"}, status=status.HTTP_200_OK)
-    
 
-# Endpoint /api/users/
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    
-# === Menu Item Views ===
 
-# Endpoint /api/menu-items/
 class MenuItemsViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for managing menu items.
+    All actions require authorization (only ataff can add or remove menu items)
+    
+    View all menu items: GET /api/menu-items/
+    Specify number of items listed per page: GET /api/menu-items/?page_size={int}
+    Search menu items by title: GET /api/menu-items/?search={string}
+    Sort (order) menu items by price, title or category title. 
+        E.g. Sort by category and price GET /api/menu-items/?ordering=category__title&ordering=price
+    Filter menu items by category e.g. Desserts: GET /api/menu-items/?category_title=Desserts
+    Add menu item: POST /api/menu-items/ (include title, price, featured and category_id in body)
+    Remove menu item: DELETE /api/menu-items/{id}/
+    """
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     permission_classes = [IsStaffOrReadOnly] 
@@ -162,8 +191,18 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
     ordering_fields = ['price', 'title', 'category__title'] # allow client to specify ordering by price
     filterset_class = MenuItemFilter
 
-# Endpoint /api/categories/
+
 class CategoriesViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for managing menu item categories
+    All actions require authorization (only staff can add categories)
+    Categories can't be deleted, as they are related to the MenuItem model
+    
+    View all categories: GET /api/categories/
+    Search by title: GET /api/categories/?search={string}
+    Sort categories by title: GET /api/categories/?ordering=title
+    Add category: POST /api/categories/ (include title, price, featured and category_id in body)
+    """
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsStaffOrReadOnly] 
@@ -172,7 +211,7 @@ class CategoriesViewSet(viewsets.ModelViewSet):
     search_fields = ['title']
     ordering_fields = ['title']
     
-    # Override delete/destroy(), so no-one can delete categories (as they are a related field in the MenuItem model)
+    # Override delete/destroy(), so no-one can delete categories
     def destroy(self, request, *args, **kwargs):
         return Response(
             {"detail": "Deleting categories is not allowed."}, 
@@ -181,15 +220,29 @@ class CategoriesViewSet(viewsets.ModelViewSet):
         
 # Endpoint /api/cart/
 class CartViewSet(viewsets.ViewSet):
+    """
+    Viewset for managing user's cart.
+    
+    View cart: GET /api/cart/
+    Add menu item to cart: POST /api/cart/ (include menuitem and quantity in body)
+    Remove menu item: DELETE /api/menu-items/{id}/
+    Clear cart (of all menu items): DELETE /api/cart/clear/
+    """
+    
     permission_classes = [IsAuthenticated]
     
     def list(self, request):
-        # Return all cart items for the authenticated user. If empty, returns []
+        """
+        List all menu items in the authenticated user's cart. If empty, return []
+        """
         queryset = Cart.objects.filter(user = request.user)
         serializer = CartSerializer(queryset, many = True)
         return Response(serializer.data)
     
     def create(self, request):
+        """
+        Add menu item to the authenticated user's cart
+        """
         # Use serializer for validation
         serializer = CartSerializer(data=request.data)
         if not serializer.is_valid():
@@ -202,6 +255,7 @@ class CartViewSet(viewsets.ViewSet):
         unit_price = menu_item.price 
         total_price = unit_price * quantity  
         
+        # Add menu item to the cart (if menu item does not already exist in this user's cart)
         cart_item, created = Cart.objects.get_or_create(
             user = request.user, 
             menuitem = menu_item,
@@ -212,10 +266,11 @@ class CartViewSet(viewsets.ViewSet):
             },
         )
         
+        # If this menu item already existed in the user's cart
         if not created:
             # Update quantity instead of creating duplicate
             cart_item.quantity += quantity  
-            # Also recalculate the total price for the row
+            # Recalculate the total price for the row
             cart_item.price = cart_item.unit_price * cart_item.quantity
             # Save the updated values to the db
             cart_item.save()
@@ -225,14 +280,18 @@ class CartViewSet(viewsets.ViewSet):
         return Response(response_serializer.data, status = status.HTTP_201_CREATED)
     
     def destroy(self, request, pk = None):
-        # Remove a specific item from the cart (I.e. Delete row from the Cart table)
+        """
+        Remove a specific menu item from the cart
+        """
         cart_item = get_object_or_404(Cart, user = request.user, pk = pk)
         cart_item.delete()
         return Response(status = status.HTTP_204_NO_CONTENT)
     
-    # endpoint /api/cart/clear/
     @action(detail = False, methods = ['delete'])
     def clear(self, request):
-        # Clear all items from the user's cart (I.e. Delete all rows in the Cart table for that user)
+        """
+        Clear all items from the user's cart
+        
+        """
         Cart.objects.filter(user = request.user).delete()
         return Response(status = status.HTTP_204_NO_CONTENT)
