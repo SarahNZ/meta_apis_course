@@ -51,7 +51,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"category_id": "Invalid category id"})
         return super().update(instance, validated_data)
         
-# Converts the Cart object into JSON
+        
 class CartSerializer(serializers.ModelSerializer):
     # The menuitem id is the primary key of the MenuItem model, not the Category model
     menuitem = serializers.PrimaryKeyRelatedField(

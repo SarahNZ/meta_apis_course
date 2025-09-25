@@ -39,6 +39,7 @@ class CartTests(BaseAPITestCase):
         # Authenticate default user
         token = self.get_auth_token()
         self.authenticate_client(token)
+    
 
     # === View and Create Cart Tests ===
 
@@ -140,10 +141,7 @@ class CartTests(BaseAPITestCase):
     def test_authenticated_user_can_add_same_item_twice(self):
         # Arrange: Get menu item
         menu_item = get_object_or_404(MenuItem, title="Margherita")
-        data = {
-            "menuitem": menu_item.id,  # type: ignore
-            "quantity": 1
-        }
+        data = {"menuitem": menu_item.id,"quantity": 1}
 
         # Act: Add the same item twice
         response = self.client.post(CART, data, format="json")
@@ -172,311 +170,436 @@ class CartTests(BaseAPITestCase):
             Cart.objects.get(user=self.user1, menuitem=menu_item).quantity, 2
         )  
         
-#     def test_authenticated_user_can_add_multiple_quantities_and_different_items(self):
-#         # Arrange: Get menu items
-#         menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
-#         menu_item_2 = get_object_or_404(MenuItem, title="Apple Pie")
+    def test_authenticated_user_can_add_multiple_quantities_and_different_items(self):
+        # Arrange: Get menu items
+        menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
+        menu_item_2 = get_object_or_404(MenuItem, title="Apple Pie")
 
-#         data_1 = {
-#             "menuitem": menu_item_1.id,  # type: ignore
-#             "quantity": 2
-#         }
+        data_1 = {
+            "menuitem": menu_item_1.id,  # type: ignore
+            "quantity": 2
+        }
 
-#         data_2 = {
-#             "menuitem": menu_item_2.id,  # type: ignore
-#             "quantity": 1
-#         }
+        data_2 = {
+            "menuitem": menu_item_2.id,  # type: ignore
+            "quantity": 1
+        }
 
-#         # Act: Add items to cart
-#         response = self.client.post(CART, data_1, format="json")
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        # Act: Add items to cart
+        response = self.client.post(CART, data_1, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
 
-#         response = self.client.post(CART, data_2, format="json")
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        response = self.client.post(CART, data_2, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
 
-#         # Act: Retrieve cart
-#         response = self.client.get(CART)
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-#         cart_items = response.json()  # type: ignore
-#         self.assertEqual(len(cart_items), 2)  # type: ignore
+        # Act: Retrieve cart
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        cart_items = response.json()  # type: ignore
+        self.assertEqual(len(cart_items), 2)  # type: ignore
 
-#         # Assert: First item is correct
-#         item_1 = next(item for item in cart_items if item["menuitem"] == menu_item_1.id)    # type: ignore
-#         self.assertEqual(item_1["quantity"], 2)  # type: ignore
-#         self.assertEqual(item_1["unit_price"], str(menu_item_1.price))  # type: ignore
-#         self.assertEqual(item_1["price"], str(menu_item_1.price * 2))  # type: ignore
+        # Assert: First item is correct
+        item_1 = next(item for item in cart_items if item["menuitem"] == menu_item_1.id)    # type: ignore
+        self.assertEqual(item_1["quantity"], 2)  # type: ignore
+        self.assertEqual(item_1["unit_price"], str(menu_item_1.price))  # type: ignore
+        self.assertEqual(item_1["price"], str(menu_item_1.price * 2))  # type: ignore
 
-#         # Assert: Second item is correct
-#         item_2 = next(item for item in cart_items if item["menuitem"] == menu_item_2.id)    # type: ignore
-#         self.assertEqual(item_2["quantity"], 1)  # type: ignore
-#         self.assertEqual(item_2["unit_price"], str(menu_item_2.price))  # type: ignore
-#         self.assertEqual(item_2["price"], str(menu_item_2.price * 1))  # type: ignore
+        # Assert: Second item is correct
+        item_2 = next(item for item in cart_items if item["menuitem"] == menu_item_2.id)    # type: ignore
+        self.assertEqual(item_2["quantity"], 1)  # type: ignore
+        self.assertEqual(item_2["unit_price"], str(menu_item_2.price))  # type: ignore
+        self.assertEqual(item_2["price"], str(menu_item_2.price * 1))  # type: ignore
 
-#         # Database-level checks
-#         self.assertEqual(
-#             Cart.objects.get(user=self.user1, menuitem=menu_item_1).quantity, 2
-#         )
-#         self.assertEqual(
-#             Cart.objects.get(user=self.user1, menuitem=menu_item_2).quantity, 1
-#         )
+        # Database-level checks
+        self.assertEqual(
+            Cart.objects.get(user=self.user1, menuitem=menu_item_1).quantity, 2
+        )
+        self.assertEqual(
+            Cart.objects.get(user=self.user1, menuitem=menu_item_2).quantity, 1
+        )
         
-#     def test_anon_user_cannot_view_or_add_to_cart(self):
-#         # Arrange: Ensure the cart has at least one item for the authenticated user
-#         self.client.force_authenticate(user=self.user1)  # Temporarily authenticate
-#         menu_item = get_object_or_404(MenuItem, title="Margherita")
-#         data = {"menuitem": menu_item.id, "quantity": 1}    # type: ignore
-#         self.client.post(CART, data, format="json")
+    def test_anon_user_cannot_view_or_add_to_cart(self):
+        # Arrange: Ensure the cart has at least one item for the authenticated user
+        self.client.force_authenticate(user=self.user1)  # Temporarily authenticate
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 1}    # type: ignore
+        self.client.post(CART, data, format="json")
 
-#         # Use a fresh anonymous client
-#         anon_client = APIClient()
+        # Use a fresh anonymous client
+        anon_client = APIClient()
 
-#         # Act & Assert: Anonymous user cannot view the cart
-#         response = anon_client.get(CART)
-#         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type: ignore
+        # Act & Assert: Anonymous user cannot view the cart
+        response = anon_client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type: ignore
 
-#         # Act & Assert: Anonymous user cannot add an item to the cart
-#         response = anon_client.post(CART, data, format="json")
-#         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type: ignore
+        # Act & Assert: Anonymous user cannot add an item to the cart
+        response = anon_client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type: ignore
 
-#         # Database-level check: Cart remains unchanged
-#         self.assertEqual(
-#             Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1
-#         )
-#         self.assertEqual(
-#             Cart.objects.get(user=self.user1, menuitem=menu_item).quantity, 1
-#         )
+        # Database-level check: Cart remains unchanged
+        self.assertEqual(
+            Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1
+        )
+        self.assertEqual(
+            Cart.objects.get(user=self.user1, menuitem=menu_item).quantity, 1
+        )
         
-#     # === Cart Isolation Tests ===  
+    # === Cart Isolation Tests ===  
       
-#     def test_authenticated_user_cannot_view_another_users_cart(self):
-#         # Arrange: Setup menu items
-#         menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
+    def test_authenticated_user_cannot_view_another_users_cart(self):
+        # Arrange: Setup menu items
+        menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
         
-#         # Arrange: User1 adds items to their cart
-#         data_1 = {"menuitem": menu_item_1.id, "quantity": 1}    # type: ignore
-#         self.client.post(CART, data_1, format="json")
+        # Arrange: User1 adds items to their cart
+        data_1 = {"menuitem": menu_item_1.id, "quantity": 1}    # type: ignore
+        self.client.post(CART, data_1, format="json")
         
-#         # Verify user1's cart has 1 item
-#         response = self.client.get(CART)
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-#         self.assertEqual(len(response.json()), 1)  # type: ignore
+        # Verify user1's cart has 1 item
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(len(response.json()), 1)  # type: ignore
         
-#         # Arrange: Create user2 and authenticate as user2
-#         self.user2 = User.objects.create_user(username="user2", password="password123")
-#         user2_client = APIClient()
-#         user2_token = self.get_auth_token(username="user2", password="password123")
-#         user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
+        # Arrange: Create user2 and authenticate as user2
+        self.user2 = User.objects.create_user(username="user2", password="password123")
+        user2_client = APIClient()
+        user2_token = self.get_auth_token(username="user2", password="password123")
+        user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
         
-#         # Act & Assert: User2 cannot view user1's cart (should see empty cart)
-#         response = user2_client.get(CART)
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-#         self.assertEqual(response.json(), [])  # type: ignore, user2's cart should be empty
+        # Act & Assert: User2 cannot view user1's cart (should see empty cart)
+        response = user2_client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore, user2's cart should be empty
 
-#     def test_user_cannot_have_duplicate_cart_entries_for_same_menu_item(self):
-#         # Arrange: Get menu item
-#         menu_item = get_object_or_404(MenuItem, title="Margherita")
+    def test_user_cannot_have_duplicate_cart_entries_for_same_menu_item(self):
+        # Arrange: Get menu item
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
         
-#         # Act: Add the same item multiple times with different quantities
-#         data_1 = {"menuitem": menu_item.id, "quantity": 2}    # type: ignore
-#         response = self.client.post(CART, data_1, format="json")
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        # Act: Add the same item multiple times with different quantities
+        data_1 = {"menuitem": menu_item.id, "quantity": 2}    # type: ignore
+        response = self.client.post(CART, data_1, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
         
-#         data_2 = {"menuitem": menu_item.id, "quantity": 3}    # type: ignore
-#         response = self.client.post(CART, data_2, format="json")
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        data_2 = {"menuitem": menu_item.id, "quantity": 3}    # type: ignore
+        response = self.client.post(CART, data_2, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
         
-#         # Act: Retrieve cart
-#         response = self.client.get(CART)
-#         self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-#         cart_items = response.json()  # type: ignore
+        # Act: Retrieve cart
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        cart_items = response.json()  # type: ignore
         
-#         # Assert: Only ONE cart entry exists for this menu item
-#         self.assertEqual(len(cart_items), 1)  # type: ignore, should be only one cart entry
+        # Assert: Only ONE cart entry exists for this menu item
+        self.assertEqual(len(cart_items), 1)  # type: ignore, should be only one cart entry
         
-#         # Assert: Quantity should be cumulative (2 + 3 = 5)
-#         item = cart_items[0]
-#         self.assertEqual(item["menuitem"], menu_item.id)  # type: ignore
-#         self.assertEqual(item["quantity"], 5)  # type: ignore, 2 + 3 = 5
-#         self.assertEqual(item["unit_price"], str(menu_item.price))  # type: ignore
-#         self.assertEqual(item["price"], str(menu_item.price * 5))  # type: ignore
+        # Assert: Quantity should be cumulative (2 + 3 = 5)
+        item = cart_items[0]
+        self.assertEqual(item["menuitem"], menu_item.id)  # type: ignore
+        self.assertEqual(item["quantity"], 5)  # type: ignore, 2 + 3 = 5
+        self.assertEqual(item["unit_price"], str(menu_item.price))  # type: ignore
+        self.assertEqual(item["price"], str(menu_item.price * 5))  # type: ignore
         
-#         # Database-level check: Verify only one Cart entry exists
-#         self.assertEqual(
-#             Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1
-#         )
-#         self.assertEqual(
-#             Cart.objects.get(user=self.user1, menuitem=menu_item).quantity, 5
-#         )
+        # Database-level check: Verify only one Cart entry exists
+        self.assertEqual(
+            Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1
+        )
+        self.assertEqual(
+            Cart.objects.get(user=self.user1, menuitem=menu_item).quantity, 5
+        )
         
-#     # === View and Create Cart - Input Validation Tests ===
+    # === List and Create Cart - Input Validation Tests ===
     
-#     def test_add_cart_item_invalid_menuitem_id(self):
-#         # Arrange: Use a non-existent menuitem ID
-#         invalid_menuitem_id = 9999
-#         data = {
-#             "menuitem": invalid_menuitem_id,
-#             "quantity": 1
-#         }
+    def test_add_cart_item_empty_data(self):
+        # Arrange: Empty data
+        data = {}
 
-#         # Act: Try to add invalid menu item to cart
-#         response = self.client.post(CART, data, format="json")
+        # Act: Try to add item with empty data
+        response = self.client.post(CART, data, format="json")
 
-#         # Assert: Should return 404 Not Found because the menu item doesn't exist
-#         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)  # type: ignore
+        # Assert: Should return 400 Bad Request
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
 
-#         # Database-level check: No cart item should be created
-#         self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+        # Database-level check: No cart item should be created
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+    
+    def test_add_cart_item_missing_menuitem(self):
+        # Arrange: Missing menuitem field
+        data = {
+            "quantity": 1
+        }
 
-#     def test_add_cart_item_quantity_zero(self):
-#         # Arrange: Use valid menuitem but quantity of 0
-#         menu_item = get_object_or_404(MenuItem, title="Margherita")
-#         data = {
-#             "menuitem": menu_item.id,
-#             "quantity": 0
-#         }
+        # Act: Try to add item without menuitem
+        response = self.client.post(CART, data, format="json")
 
-#         # Act: Try to add item with zero quantity
-#         response = self.client.post(CART, data, format="json")
+        # Assert: Should return 400 Bad Request because the data validation failed
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
 
-#         # Assert: Should return 400 Bad Request or handle according to business logic
-#         # Note: Based on your views.py, this might succeed with quantity 0, 
-#         # but let's test what actually happens
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        # Database-level check: No cart item should be created
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
         
-#         # Verify the cart item was created with quantity 0
-#         cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
-#         self.assertEqual(cart_item.quantity, 0)
-
-#     def test_add_cart_item_negative_quantity(self):
-#         # Arrange: Use valid menuitem but negative quantity
-#         menu_item = get_object_or_404(MenuItem, title="Margherita")
-#         data = {
-#             "menuitem": menu_item.id,
-#             "quantity": -1
-#         }
-
-#         # Act: Try to add item with negative quantity
-#         response = self.client.post(CART, data, format="json")
-
-#         # Assert: Based on your current implementation, this might succeed
-#         # but ideally should be validated
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
         
-#         # Verify the cart item was created with negative quantity
-#         cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
-#         self.assertEqual(cart_item.quantity, -1)
+    def test_add_cart_item_missing_quantity(self):
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {"menuitem": menu_item.id}
 
-#     def test_add_cart_item_missing_menuitem(self):
-#         # Arrange: Missing menuitem field
-#         data = {
-#             "quantity": 1
-#         }
+        # Act: Try to add item without quantity
+        response = self.client.post(CART, data, format="json")
 
-#         # Act: Try to add item without menuitem
-#         response = self.client.post(CART, data, format="json")
-
-#         # Assert: Currently returns 404 because get_object_or_404(MenuItem, id=None) fails
-#         # This could be improved to return 400 with proper validation
-#         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)  # type: ignore
-
-#         # Database-level check: No cart item should be created
-#         self.assertFalse(Cart.objects.filter(user=self.user1).exists())
-
-#     def test_add_cart_item_missing_quantity(self):
-#         # Arrange: Missing quantity field (should default to 1 based on views.py)
-#         menu_item = get_object_or_404(MenuItem, title="Margherita")
-#         data = {
-#             "menuitem": menu_item.id
-#         }
-
-#         # Act: Try to add item without quantity
-#         response = self.client.post(CART, data, format="json")
-
-#         # Assert: Should succeed with default quantity of 1
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        # Assert: Should succeed with default quantity of 1
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
         
-#         # Verify the cart item was created with default quantity
-#         cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
-#         self.assertEqual(cart_item.quantity, 1)
+        # Database-level check: No cart item should be created
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
 
-#     def test_add_cart_item_invalid_quantity_format(self):
-#         # Arrange: Use valid menuitem but invalid quantity format
-#         menu_item = get_object_or_404(MenuItem, title="Margherita")
-#         data = {
-#             "menuitem": menu_item.id,
-#             "quantity": "invalid"
-#         }
+    def test_add_cart_item_with_extra_fields_are_ignored(self):
+        # Arrange: Use valid data but include extra fields that aren't in the model/serializer
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {
+            "menuitem": menu_item.id,  # type: ignore
+            "quantity": 2,
+            "extra_field": "should be ignored",
+            "another_field": 123,
+            "nested_object": {"key": "value"}
+        }
 
-#         # Act & Assert: Currently causes a server error due to int() conversion
-#         # This test documents the current behavior - ideally should return 400
-#         with self.assertRaises(ValueError):  # type: ignore
-#             response = self.client.post(CART, data, format="json")
+        # Act: Try to add item with extra fields
+        response = self.client.post(CART, data, format="json")
 
-#         # Database-level check: No cart item should be created due to the error
-#         self.assertFalse(Cart.objects.filter(user=self.user1).exists())
-
-#     def test_add_cart_item_invalid_menuitem_format(self):
-#         # Arrange: Use invalid menuitem format
-#         data = {
-#             "menuitem": "invalid",
-#             "quantity": 1
-#         }
-
-#         # Act: Try to add item with invalid menuitem format
-#         response = self.client.post(CART, data, format="json")
-
-#         # Assert: Should return 404 Not Found (get_object_or_404 will handle the invalid ID)
-#         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)  # type: ignore
-
-#         # Database-level check: No cart item should be created
-#         self.assertFalse(Cart.objects.filter(user=self.user1).exists())
-
-#     def test_add_cart_item_null_menuitem(self):
-#         # Arrange: Use null menuitem
-#         data = {
-#             "menuitem": None,
-#             "quantity": 1
-#         }
-
-#         # Act: Try to add item with null menuitem
-#         response = self.client.post(CART, data, format="json")
-
-#         # Assert: Should return 404 Not Found (get_object_or_404 handles None as non-existent)
-#         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)  # type: ignore
-
-#         # Database-level check: No cart item should be created
-#         self.assertFalse(Cart.objects.filter(user=self.user1).exists())
-
-#     def test_add_cart_item_null_quantity(self):
-#         # Arrange: Use valid menuitem but null quantity
-#         menu_item = get_object_or_404(MenuItem, title="Margherita")
-#         data = {
-#             "menuitem": menu_item.id,
-#             "quantity": None
-#         }
-
-#         # Act: Try to add item with null quantity
-#         response = self.client.post(CART, data, format="json")
-
-#         # Assert: Should use default quantity of 1 (based on views.py logic)
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        # Assert: Should succeed - extra fields are ignored by DRF serializer
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
         
-#         # Verify the cart item was created with default quantity
-#         cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
-#         self.assertEqual(cart_item.quantity, 1)
+        # Assert: Response should only contain expected fields (no extra fields returned)
+        response_data = response.json()  # type: ignore
+        expected_fields = {"id", "menuitem", "menuitem_title", "quantity", "unit_price", "price"}
+        actual_fields = set(response_data.keys())
+        self.assertEqual(actual_fields, expected_fields)  # type: ignore
+        
+        # Assert: Only the valid data was saved
+        self.assertEqual(response_data["menuitem"], menu_item.id)  # type: ignore
+        self.assertEqual(response_data["quantity"], 2)  # type: ignore
+        self.assertEqual(response_data["unit_price"], str(menu_item.price))  # type: ignore
 
-#     def test_add_cart_item_empty_data(self):
-#         # Arrange: Empty data
-#         data = {}
+        # Database-level check: Cart item should be created with correct data
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.quantity, 2)
+        self.assertEqual(cart_item.unit_price, menu_item.price)
+        
+    def test_add_cart_item_cannot_set_price_or_unit_price(self):
+        # Arrange: Attempt to set the price and unit price, which are fields in the Cart model through the HTTP 
+        # request body
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {
+            "menuitem": menu_item.id,  # type: ignore
+            "quantity": 2,
+            "price": 1.00,
+            "unit_price": 2.00
+        }
 
-#         # Act: Try to add item with empty data
-#         response = self.client.post(CART, data, format="json")
+        # Act: Try to add item with price and unit price set by the client
+        response = self.client.post(CART, data, format="json")
 
-#         # Assert: Should return 400 Bad Request
-#         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
+        # Assert: Should succeed - Price and unit_price fields are ignored, as they are configured as read-only 
+        # by the serializer
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Assert: Response should only contain expected fields (no extra fields returned)
+        response_data = response.json()  # type: ignore
+        expected_fields = {"id", "menuitem", "menuitem_title", "quantity", "unit_price", "price"}
+        actual_fields = set(response_data.keys())
+        self.assertEqual(actual_fields, expected_fields)  # type: ignore
+        
+        # Assert: Only the valid data was saved
+        self.assertEqual(response_data["menuitem"], menu_item.id)  # type: ignore
+        self.assertEqual(response_data["quantity"], 2)  # type: ignore
+        self.assertEqual(response_data["unit_price"], str(menu_item.price))  # type: ignore
 
-#         # Database-level check: No cart item should be created
-#         self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+        # Database-level check: Cart item should be created with correct data
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.quantity, 2)
+        self.assertEqual(cart_item.unit_price, menu_item.price)
+
+    def test_add_cart_item_no_matching_menuitem_id(self):
+        # Arrange: Use a non-existent menuitem ID I.e. 9999. Same result for 0 or negative numbers
+        invalid_menuitem_id = 9999
+        data = {
+            "menuitem": invalid_menuitem_id,
+            "quantity": 1
+        }
+
+        # Act: Try to add invalid menu item to cart
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Should return 400 Bad Request because the data validation failed
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
+        
+        # Assert: Response should contain validation error details
+        self.assertIn("menuitem", response.json())  # type: ignore
+
+        # Database-level check: No cart item should be created
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+
+    def test_add_cart_item_decimal_menuitem_id(self):
+        # Arrange: Use a decimal menuitem ID (should this be allowed?)
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        decimal_id = float(menu_item.id) + 0.7  # e.g., if ID is 2, this becomes 2.7
+        data = {
+            "menuitem": decimal_id,  # type: ignore
+            "quantity": 1
+        }
+
+        # Act: Try to add item with decimal menuitem ID
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Currently succeeds because DRF truncates the decimal to int
+        # This may not be ideal behavior - should probably return 400 Bad Request
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Assert: The decimal was truncated to the integer part
+        response_data = response.json()  # type: ignore
+        self.assertEqual(response_data["menuitem"], menu_item.id)  # type: ignore, truncated to original ID
+        
+        # Database-level check: Cart item was created with truncated ID
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.menuitem.id, menu_item.id)
+        
+    def test_add_cart_item_decimal_quantity_fails_validation(self):
+        # Arrange: Use a decimal quantity
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {
+            "menuitem": menu_item.id,  # type: ignore
+            "quantity": 2.7  # Decimal quantities should fail validation
+        }
+
+        # Act: Try to add item with decimal quantity
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Fails because quantity field expects integer, not float
+        # This is GOOD behavior - quantities should be whole numbers
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
+        
+        # Assert: Response contains validation error
+        response_data = response.json()  # type: ignore
+        self.assertIn("quantity", response_data)  # type: ignore
+        self.assertIn("valid integer", str(response_data["quantity"]))  # type: ignore
+        
+        # Database-level check: No cart item should be created
+        self.assertFalse(Cart.objects.filter(user=self.user1, menuitem=menu_item).exists())
+        
+        
+    def test_add_cart_item_quantity_zero(self):
+        # Arrange: Use valid menuitem but quantity of 0
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {
+            "menuitem": menu_item.id,
+            "quantity": 0
+        }
+
+        # Act: Try to add item with zero quantity
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Should return 400 Bad Request
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
+        
+        # Database-level check: No cart item should be created
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+
+    def test_add_cart_item_negative_quantity(self):
+        # Arrange: Use valid menuitem but negative quantity
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {
+            "menuitem": menu_item.id,
+            "quantity": -1
+        }
+
+        # Act: Try to add item with negative quantity
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Should return 400 Bad Request
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
+        
+        # Database-level check: No cart item should be created
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+        
+    def test_add_cart_item_invalid_menuitem_format(self):
+        # Arrange: Use invalid menuitem format
+        data = {
+            "menuitem": "invalid",
+            "quantity": 1
+        }
+
+        # Act: Try to add item with invalid menuitem format
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Should return 400 Bad Request (as input data validation failed)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
+
+        # Database-level check: No cart item should be created
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+
+    def test_add_cart_item_invalid_quantity_format(self):
+        # Arrange: Use valid menuitem but invalid quantity format
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {
+            "menuitem": menu_item.id,
+            "quantity": "invalid"
+        }
+
+        # Act: Try to add item with invalid quantity format
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Should return 400 Bad Request (as input data validation failed)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
+
+        # Database-level check: No cart item should be created
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+        
+    # === Update Cart Tests ===
+
+    """
+    Note: PUT and PATCH HTTP actions are not allowed.
+    A user can increase the quantity of a menu item in their cart using POST.
+    But they can't decrease the quantity of a menu item using a negative integer, as quantity must be at least 1
+    """
+    def test_patch_action_not_allowed(self):
+        # Arrange: Get menu item
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data_1 = {"menuitem": menu_item.id, "quantity": 1}
+        data_2 = {"menuitem": menu_item.id, "quantity": 2}
+        
+        # Act: Add item to cart
+        response = self.client.post(CART, data_1, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Act: Attempt to partially update cart using HTTP PATCH action
+        response = self.client.patch(CART, data_2, format="json")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # Assert: Cart has not changed (Database-level check)
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.quantity, 1)
+        self.assertEqual(cart_item.unit_price, menu_item.price)
+        self.assertEqual(cart_item.price, menu_item.price)
+        
+    def test_put_action_not_allowed(self):
+        # Arrange: Get menu items
+        menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
+        menu_item_2 = get_object_or_404(MenuItem, title="Apple Pie")
+        data_1 = {"menuitem": menu_item_1.id, "quantity": 1}
+        data_2 = {"menuitem": menu_item_2.id, "quantity": 2}
+        
+        # Act: Add first item to cart
+        response = self.client.post(CART, data_1, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Act: Attempt to fully update cart using HTTP PUT action
+        response = self.client.put(CART, data_2, format="json")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # Assert: Cart has not changed (Database-level check)
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item_1)
+        self.assertEqual(cart_item.quantity, 1)
+        self.assertEqual(cart_item.unit_price, menu_item_1.price)
+        self.assertEqual(cart_item.price, menu_item_1.price)
+ 
         
 #     # === Delete Cart Tests ===
    
@@ -503,6 +626,13 @@ class CartTests(BaseAPITestCase):
 #         self.assertEqual(
 #             Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 0
 #         )
+
+    # test_authenticated_user_cannot_delete_item_not_in_cart - TODO
+    # test_authenticated_user_deletes_single_cart_item 
+    # test_anon_user_cannot_delete_another_users_item_in_cart - TODO
+    # test_auth_user_1_cannot_delete_auth_user_2_cart - TODO
+    # test_authenticated_user_deletes_one_item_of_two_in_cart - TODO
+    # test_authenticated_user_deletes_multiple_quantities_of_same_item - TODO
    
 #     # === Clear Cart Tests ===
        
@@ -529,77 +659,10 @@ class CartTests(BaseAPITestCase):
 #         self.assertEqual(
 #             Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 0
 #         )
-        
-#     # === Cart Isolation Tests ===  
-      
-#     # def test_authenticated_user_cannot_access_another_users_cart(self):
-#     #     # Arrange: Setup menu items
-#     #     menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
-#     #     menu_item_2 = get_object_or_404(MenuItem, title="Pepperoni")
-        
-#     #     # Arrange: User1 adds items to their cart
-#     #     self.client.force_authenticate(user=self.user1)
-#     #     data_1 = {"menuitem": menu_item_1.id, "quantity": 2}    # type: ignore
-#     #     data_2 = {"menuitem": menu_item_2.id, "quantity": 1}    # type: ignore
-#     #     self.client.post(CART, data_1, format="json")
-#     #     self.client.post(CART, data_2, format="json")
-        
-#     #     # Verify user1's cart has 2 items
-#     #     response = self.client.get(CART)
-#     #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-#     #     self.assertEqual(len(response.json()), 2)  # type: ignore
-        
-#     #     # Arrange: Create and authenticate as user2
-#     #     user2_client.credentials()
-#     #     user2_token = self.get_auth_token(username="user2", password="password123")
-#     #     user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
-        
-#     #     # Act & Assert: User2 cannot view user1's cart (should see empty cart)
-#     #     response = user2_client.get(CART)
-#     #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-#     #     self.assertEqual(response.json(), [])  # type: ignore, user2's cart should be empty
-        
-#     #     # Act & Assert: User2 can add their own items (cart isolation)
-#     #     data_3 = {"menuitem": menu_item_1.id, "quantity": 3}    # type: ignore
-#     #     response = user2_client.post(CART, data_3, format="json")
-#     #     self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
-        
-#     #     # Act & Assert: User2's cart only shows their own item
-#     #     response = user2_client.get(CART)
-#     #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-#     #     user2_cart = response.json()  # type: ignore
-#     #     self.assertEqual(len(user2_cart), 1)  # type: ignore
-#     #     self.assertEqual(user2_cart[0]["quantity"], 3)  # type: ignore
-        
-#     #     # Act & Assert: User2 cannot delete user1's cart items by ID
-#     #     url = f"{CART}{menu_item_1.id}/"
-#     #     response = user2_client.delete(url)
-#     #     # This should either delete user2's item or return 404 (depending on implementation)
-#     #     # But it should NOT delete user1's item
-        
-#     #     # Act & Assert: User1's cart remains unchanged
-#     #     self.client.force_authenticate(user=self.user1)
-#     #     response = self.client.get(CART)
-#     #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-#     #     user1_cart = response.json()  # type: ignore
-#     #     # User1 should still have their original items (unless user2 deleted their own)
-#     #     user1_margherita = next((item for item in user1_cart if item["menuitem"] == menu_item_1.id), None)    # type: ignore
-#     #     if user1_margherita:  # If user1's Margherita item still exists
-#     #         self.assertEqual(user1_margherita["quantity"], 2)  # type: ignore, should be unchanged
-        
-#     #     # Act & Assert: User2 cannot clear user1's entire cart
-#     #     user2_client.delete(f"{CART}clear/")
-        
-#     #     # Verify user1's cart is still intact after user2's clear attempt
-#     #     self.client.force_authenticate(user=self.user1)
-#     #     response = self.client.get(CART)
-#     #     self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        
-#     #     # Database-level checks: Verify cart isolation
-#     #     user1_cart_count = Cart.objects.filter(user=self.user1).count()
-#     #     user2_cart_count = Cart.objects.filter(user=self.user2).count()
-        
-#     #     # User1 should have their original items (2 initially, minus any that user2 might have "deleted" of their own)
-#     #     self.assertGreaterEqual(user1_cart_count, 1)  # type: ignore, at least one item should remain
-#     #     # User2 should have at most 1 item (what they added, minus what they might have deleted)
-#     #     self.assertLessEqual(user2_cart_count, 1)  # type: ignore
+
+    # test_authenticated_user_clears_cart_single_item 
+    # test_anon_user_cannot_clear_auth_users_cart - TODO
+    # test_auth_user_1_cannot_clear_auth_user_2_cart - TODO
+    # test_authenticated_user_clears_cart_of_two_different_cart_items - TODO
+    # test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item - TODO
+    # test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items - TODO
