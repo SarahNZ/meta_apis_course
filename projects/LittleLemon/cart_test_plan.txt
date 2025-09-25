@@ -1,6 +1,6 @@
 Key: ✅ manual test passed, ✅✅ automated test passed
 
-# === View and Create Cart Tests ===
+# === View and Create Cart Tests === ✅✅
     - test_authenticated_user_can_view_empty_cart ✅ ✅
     - test_authenticated_user_can_add_and_view_single_cart_item ✅
     - test_authenticated_user_can_add_and_view_two_different_cart_items ✅✅
@@ -11,9 +11,8 @@ Key: ✅ manual test passed, ✅✅ automated test passed
     - test_user_cannot_have_duplicate_cart_entries_for_same_menu_item ✅✅
     - test_user_cannot_add_invalid_menuitems_ids_or_quantities_to_cart ✅✅
 
-# === Update Cart Tests ===
-    - test_authenticated_user_can_increase_quantity_of_menu_item_in_cart
-    - test_authenticated_user_can_decrease_quanity_of_menu_item_in_cart
+# === Update Cart Tests === ✅✅
+    - put and post methods not allowed ✅✅
     - Check that authenticated user can't edit the price of menu items in their cart ✅✅
 
 # === Delete Cart Tests ===
@@ -23,6 +22,7 @@ Key: ✅ manual test passed, ✅✅ automated test passed
     # test_auth_user_1_cannot_delete_auth_user_2_cart - TODO
     # test_authenticated_user_deletes_one_item_of_two_in_cart - TODO
     # test_authenticated_user_deletes_multiple_quantities_of_same_item - TODO
+    # delete validation tests - invalid id url parameter. E.g. menu item with that id does not exist in user's cart, or db, or decimal number type, or wrong type e.g. string
 
 # === Clear Cart Tests ===
     # test_authenticated_user_clears_cart_single_item 
@@ -31,3 +31,4 @@ Key: ✅ manual test passed, ✅✅ automated test passed
     # test_authenticated_user_clears_cart_of_two_different_cart_items - TODO
     # test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item - TODO
     # test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items - TODO
+    # clear validation tests - cart is already empty
