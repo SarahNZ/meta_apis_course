@@ -603,66 +603,215 @@ class CartTests(BaseAPITestCase):
         
 #     # === Delete Cart Tests ===
    
-#     def test_authenticated_user_deletes_single_cart_item(self):
-#         # Arrange: Get menu item
-#         menu_item = get_object_or_404(MenuItem, title="Margherita")
-#         data = {
-#             "menuitem": menu_item.id,  # type: ignore
-#             "quantity": 1
-#         }
+    def test_authenticated_user_deletes_single_cart_item_leaving_cart_empty(self):
+        # Arrange: Get menu items
+        menu_item = get_object_or_404(MenuItem, title = "Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 1}
+        
+        # Act: Add one item to cart
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-#         # Act: Add item to cart
-#         response = self.client.post(CART, data, format="json")
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        # Act: Delete one item in cart
+        response = self.client.delete(f"{CART}{menu_item.id}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        
+        # Database level check that the cart is now empty
+        self.assertFalse(Cart.objects.filter(user = self.user1).exists())
 
-#         # Act: Delete single item in cart
-#         url = f"{CART}{menu_item.id}/"  # type: ignore
-#         response = self.client.delete(url)
+    
+    def test_authenticated_user_deletes_multiple_quantities_of_same_item(self):
+        # Arrange: Get menu items
+        menu_item = get_object_or_404(MenuItem, title = "Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 2}
+        
+        # Act: Add quantity 2 of the menu item to the cart
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-#         # Assert: Cart is now empty
-#         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+        # Act: Delete the menu item from the cart (entire quantity)
+        response = self.client.delete(f"{CART}{menu_item.id}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        
+        # Database level check that the cart is now empty
+        self.assertFalse(Cart.objects.filter(user = self.user1).exists())
+    
+    def test_authenticated_user_deletes_one_item_of_two_different_items_in_cart(self):
+        # Arrange: Get menu items
+        menu_item_1 = get_object_or_404(MenuItem, title = "Margherita")
+        menu_item_2 = get_object_or_404(MenuItem, title = "Apple Pie")
+        data_1 = {"menuitem": menu_item_1.id, "quantity": 1}
+        data_2 = {"menuitem": menu_item_2.id, "quantity": 1}
+        
+        # Act: Add two items to cart
+        response = self.client.post(CART, data_1, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response = self.client.post(CART, data_2, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-#         # Database-level check
-#         self.assertEqual(
-#             Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 0
-#         )
+        # Act: Delete one item in cart
+        response = self.client.delete(f"{CART}{menu_item_1.id}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        
+        # Act: Get cart
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Assert: Only one item now in the cart
+        cart_items = response.json()  # type: ignore
+        self.assertEqual(len(cart_items), 1)  # type: ignore
 
-    # test_authenticated_user_cannot_delete_item_not_in_cart - TODO
-    # test_authenticated_user_deletes_single_cart_item 
-    # test_anon_user_cannot_delete_another_users_item_in_cart - TODO
-    # test_auth_user_1_cannot_delete_auth_user_2_cart - TODO
-    # test_authenticated_user_deletes_one_item_of_two_in_cart - TODO
-    # test_authenticated_user_deletes_multiple_quantities_of_same_item - TODO
-   
-#     # === Clear Cart Tests ===
-       
-#     def test_authenticated_user_clears_cart_single_item(self):
-#         # Arrange: Get menu item
-#         menu_item = get_object_or_404(MenuItem, title="Margherita")
-#         data = {
-#             "menuitem": menu_item.id,  # type: ignore
-#             "quantity": 1
-#         }
+        item = cart_items[0]
+        self.assertEqual(item["menuitem"], menu_item_2.id)  # type: ignore
+        self.assertEqual(item["menuitem_title"], menu_item_2.title)  # type: ignore
+        self.assertEqual(item["quantity"], data_2["quantity"])  # type: ignore
+        self.assertEqual(item["unit_price"], str(menu_item_2.price))  # type: ignore
+        self.assertEqual(item["price"], str(menu_item_2.price * data_2["quantity"]))  # type: ignore
 
-#         # Act: Add item to cart
-#         response = self.client.post(CART, data, format="json")
-#         self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        # Database-level check
+        self.assertEqual(
+            Cart.objects.filter(user=self.user1, menuitem=menu_item_2).count(), 1
+        )
+          
+        
+    def test_authenticated_user_cannot_delete_item_from_empty_cart(self):
+        # Arrange: Get menu item id, but leave cart empty
+        menu_item = get_object_or_404(MenuItem, title = "Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 1}
 
-#         # Act: Clear cart
-#         url = f"{CART}clear/"
-#         response = self.client.delete(url)
+        # Act: Attempt to delete item that is not in cart
+        response = self.client.delete(f"{CART}{menu_item.id}/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        
+        
+    def test_auth_user_cannot_delete_item_that_does_not_exist(self):
+        # Arrange: Get menu items
+        menu_item = get_object_or_404(MenuItem, title = "Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 2}
+        
+        # Act: Add two of the menu items to the cart
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-#         # Assert: Cart is now empty
-#         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+        # Act: Try to delete an item with invalid id from the cart. 
+        # Note: This test uses id = 0, but negative numbers and high numbers that don't match menu items produce the same response
+        response = self.client.delete(f"{CART}0/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        
+        # Database level check that the cart is now empty
+        self.assertEqual(Cart.objects.filter(user = self.user1).count(), 1)
+    
+    
+    def test_auth_user_cannot_delete_item_with_decimal_id(self):
+        # Arrange: Get menu items
+        menu_item = get_object_or_404(MenuItem, title = "Margherita")
+        menu_item_dec_id = menu_item.id + 0.2
+        data_1 = {"menuitem": menu_item.id, "quantity": 2}
+        data_2 = {"menuitem": menu_item_dec_id, "quantity": 2}
+        
+        # Act: Add two of the menu items to the cart
+        response = self.client.post(CART, data_1, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-#         # Database-level check
-#         self.assertEqual(
-#             Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 0
-#         )
+        # Act: Try to delete an item with invalid id from the cart. I.e. A decimal number
+        response = self.client.delete(f"{CART}{data_2}/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        
+        # Database level check that the cart is now empty
+        self.assertEqual(Cart.objects.filter(user = self.user1).count(), 1)
+    
+    def test_auth_user_cannot_delete_item_with_string_id(self):
+        # Arrange: Get menu items and add to cart
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 2}
+        
+        # Act: Add item to cart
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+        # Act: Try to delete an item with string id from the cart
+        response = self.client.delete(f"{CART}invalid_string/")
+        
+        # Assert: Should return 400 Bad Request for invalid ID format
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        # Assert: Response should contain error message about invalid ID format
+        response_data = response.json()
+        self.assertIn("detail", response_data)
+        self.assertIn("Invalid cart item ID format", response_data["detail"])
+        
+        # Database level check that the cart item still exists (wasn't affected)
+        self.assertEqual(Cart.objects.filter(user=self.user1).count(), 1)
+    
+    
+    def test_anon_user_cannot_delete_authorized_users_item_in_cart(self):
+        # Arrange: Authenticated user adds item to cart
+        self.client.force_authenticate(user=self.user1)  # Temporarily authenticate
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 1}    # type: ignore
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+
+        # Verify user1's cart has 1 item
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(len(response.json()), 1)  # type: ignore
+        
+        # Use a fresh anonymous client
+        anon_client = APIClient()
+
+        # Act & Assert: Anonymous user cannot delete item from authenticated user's cart
+        response = anon_client.delete(f"{CART}{menu_item.id}/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type: ignore
+
+        # Database-level check: Cart item remains unchanged
+        self.assertEqual(Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1)
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.quantity, 1)
+    
+    def test_auth_user_1_cannot_delete_auth_user_2_cart(self):
+        # Arrange: User1 adds item to their cart
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 1}    # type: ignore
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Verify user1's cart has 1 item
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(len(response.json()), 1)  # type: ignore
+        
+        # Arrange: Create user2 and authenticate as user2
+        self.user2 = User.objects.create_user(username="user2", password="password123")
+        user2_client = APIClient()
+        user2_token = self.get_auth_token(username="user2", password="password123")
+        user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
+
+        # Act: User2 tries to delete item from user1's cart
+        response = user2_client.delete(f"{CART}{menu_item.id}/")
+        
+        # Assert: Should return 404 NOT FOUND (cart item doesn't exist in user2's cart)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)  # type: ignore
+
+        # Database-level check: User1's cart item remains unchanged
+        self.assertEqual(Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1)
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.quantity, 1)
+        
+        # Database-level check: User2 has no cart items
+        self.assertEqual(Cart.objects.filter(user=self.user2).count(), 0)
+
+
+# === Clear Cart Tests ===
     # test_authenticated_user_clears_cart_single_item 
+    # test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item - TODO
+    # test_authenticated_user_clears_cart_of_two_different_cart_items - TODO
+    # test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items - TODO
+
+    # === Cart Isolation Tests ===
     # test_anon_user_cannot_clear_auth_users_cart - TODO
     # test_auth_user_1_cannot_clear_auth_user_2_cart - TODO
-    # test_authenticated_user_clears_cart_of_two_different_cart_items - TODO
-    # test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item - TODO
-    # test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items - TODO
+
+    # === Input Validation Tests ===
+    # test_auth_user_cannot_clear_empty_cart (What happens?)
+    # What happens if we provide a url parameter or body?

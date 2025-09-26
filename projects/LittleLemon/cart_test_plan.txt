@@ -16,19 +16,26 @@ Key: ✅ manual test passed, ✅✅ automated test passed
     - Check that authenticated user can't edit the price of menu items in their cart ✅✅
 
 # === Delete Cart Tests ===
-    # test_authenticated_user_cannot_delete_item_not_in_cart - TODO
-    # test_authenticated_user_deletes_single_cart_item 
-    # test_anon_user_cannot_delete_another_users_item_in_cart - TODO
+    # test_authenticated_user_deletes_single_cart_item_leaving_cart_empty
+    # test_authenticated_user_deletes_multiple_quantities_of_same_item
+    # test_authenticated_user_deletes_one_item_of_two_different_items_in_cart
+    # test_authenticated_user_cannot_delete_item_in_empty_cart
+    # test_anon_user_cannot_delete_authorized_users_item_in_cart - TODO
     # test_auth_user_1_cannot_delete_auth_user_2_cart - TODO
-    # test_authenticated_user_deletes_one_item_of_two_in_cart - TODO
-    # test_authenticated_user_deletes_multiple_quantities_of_same_item - TODO
-    # delete validation tests - invalid id url parameter. E.g. menu item with that id does not exist in user's cart, or db, or decimal number type, or wrong type e.g. string
+    # test_auth_user_cannot_delete_item_that_does_not_exist (E.g. id = 0, neg number of int too high e.g. 9999)
+    # test_auth_user_cannot_delete_item_with_decimal_id
+    # test_auth_user_cannot_delete_item_with_string_id
 
 # === Clear Cart Tests ===
     # test_authenticated_user_clears_cart_single_item 
+    # test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item - TODO
+    # test_authenticated_user_clears_cart_of_two_different_cart_items - TODO
+    # test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items - TODO
+
+    # === Cart Isolation Tests ===
     # test_anon_user_cannot_clear_auth_users_cart - TODO
     # test_auth_user_1_cannot_clear_auth_user_2_cart - TODO
-    # test_authenticated_user_clears_cart_of_two_different_cart_items - TODO
-    # test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item - TODO
-    # test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items - TODO
-    # clear validation tests - cart is already empty
+
+    # === Input Validation Tests ===
+    # test_auth_user_cannot_clear_empty_cart (What happens?)
+    # What happens if we provide a url parameter or body?

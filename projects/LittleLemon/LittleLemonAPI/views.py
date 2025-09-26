@@ -362,6 +362,13 @@ class CartViewSet(viewsets.ViewSet):
             
             return Response(status = status.HTTP_204_NO_CONTENT)
             
+        except ValueError:
+            # Handle invalid ID format (e.g., strings that can't be converted to int)
+            logger.warning(f"User '{request.user.username}' attempted to delete cart item with invalid ID format: {pk}")
+            return Response(
+                {"detail": "Invalid cart item ID format"}, 
+                status = status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
             logger.error(f"ERROR: User '{request.user.username}' failed to remove item {pk} from cart: {str(e)}")
             raise
