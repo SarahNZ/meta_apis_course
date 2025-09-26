@@ -803,15 +803,250 @@ class CartTests(BaseAPITestCase):
 
 
 # === Clear Cart Tests ===
-    # test_authenticated_user_clears_cart_single_item 
-    # test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item - TODO
-    # test_authenticated_user_clears_cart_of_two_different_cart_items - TODO
-    # test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items - TODO
+    
+    def test_authenticated_user_clears_cart_single_item(self):
+        # Arrange: Add single item to cart
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 1}    # type: ignore
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Verify cart has 1 item
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(len(response.json()), 1)  # type: ignore
+        
+        # Act: Clear the cart
+        response = self.client.delete(f"{CART}clear/")
+        
+        # Assert: Should return 204 No Content
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+        
+        # Assert: Cart should now be empty
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore
+        
+        # Database-level check: Cart should be empty
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+    
+    def test_authenticated_user_clears_cart_of_multiple_quantities_of_same_item(self):
+        # Arrange: Add multiple quantities of same item to cart
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 3}    # type: ignore
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Verify cart has 1 item with quantity 3
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        cart_items = response.json()  # type: ignore
+        self.assertEqual(len(cart_items), 1)  # type: ignore
+        self.assertEqual(cart_items[0]["quantity"], 3)  # type: ignore
+        
+        # Act: Clear the cart
+        response = self.client.delete(f"{CART}clear/")
+        
+        # Assert: Should return 204 No Content
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+        
+        # Assert: Cart should now be empty
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore
+        
+        # Database-level check: Cart should be empty
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+    
+    def test_authenticated_user_clears_cart_of_two_different_cart_items(self):
+        # Arrange: Add two different items to cart
+        menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
+        menu_item_2 = get_object_or_404(MenuItem, title="Apple Pie")
+        
+        data_1 = {"menuitem": menu_item_1.id, "quantity": 1}    # type: ignore
+        data_2 = {"menuitem": menu_item_2.id, "quantity": 1}    # type: ignore
+        
+        response = self.client.post(CART, data_1, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        response = self.client.post(CART, data_2, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Verify cart has 2 items
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(len(response.json()), 2)  # type: ignore
+        
+        # Act: Clear the cart
+        response = self.client.delete(f"{CART}clear/")
+        
+        # Assert: Should return 204 No Content
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+        
+        # Assert: Cart should now be empty
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore
+        
+        # Database-level check: Cart should be empty
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+    
+    def test_authenticated_user_clears_cart_of_multiple_quantities_of_multiple_items(self):
+        # Arrange: Add multiple items with varying quantities to cart
+        menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
+        menu_item_2 = get_object_or_404(MenuItem, title="Apple Pie")
+        menu_item_3 = get_object_or_404(MenuItem, title="Pepperoni")
+        
+        data_1 = {"menuitem": menu_item_1.id, "quantity": 2}    # type: ignore
+        data_2 = {"menuitem": menu_item_2.id, "quantity": 1}    # type: ignore
+        data_3 = {"menuitem": menu_item_3.id, "quantity": 3}    # type: ignore
+        
+        response = self.client.post(CART, data_1, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        response = self.client.post(CART, data_2, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        response = self.client.post(CART, data_3, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Verify cart has 3 items with correct quantities
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        cart_items = response.json()  # type: ignore
+        self.assertEqual(len(cart_items), 3)  # type: ignore
+        
+        # Verify total quantities in database
+        total_cart_items = Cart.objects.filter(user=self.user1).count()
+        self.assertEqual(total_cart_items, 3)
+        
+        # Act: Clear the cart
+        response = self.client.delete(f"{CART}clear/")
+        
+        # Assert: Should return 204 No Content
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+        
+        # Assert: Cart should now be empty
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore
+        
+        # Database-level check: Cart should be empty
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
 
-    # === Cart Isolation Tests ===
-    # test_anon_user_cannot_clear_auth_users_cart - TODO
-    # test_auth_user_1_cannot_clear_auth_user_2_cart - TODO
+    # === Clear Cart - Isolation Tests ===
+    
+    def test_anon_user_cannot_clear_auth_users_cart(self):
+        # Arrange: Authenticated user adds item to cart
+        self.client.force_authenticate(user=self.user1)  # Temporarily authenticate
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 2}    # type: ignore
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
 
-    # === Input Validation Tests ===
-    # test_auth_user_cannot_clear_empty_cart (What happens?)
-    # What happens if we provide a url parameter or body?
+        # Verify user1's cart has 1 item
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(len(response.json()), 1)  # type: ignore
+        
+        # Use a fresh anonymous client
+        anon_client = APIClient()
+
+        # Act & Assert: Anonymous user cannot clear authenticated user's cart
+        response = anon_client.delete(f"{CART}clear/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type: ignore
+
+        # Database-level check: Cart items remain unchanged
+        self.assertEqual(Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1)
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.quantity, 2)
+    
+    def test_auth_user_1_cannot_clear_auth_user_2_cart(self):
+        # Arrange: User1 adds items to their cart
+        menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
+        menu_item_2 = get_object_or_404(MenuItem, title="Apple Pie")
+        data_1 = {"menuitem": menu_item_1.id, "quantity": 1}    # type: ignore
+        data_2 = {"menuitem": menu_item_2.id, "quantity": 2}    # type: ignore
+        
+        response = self.client.post(CART, data_1, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        response = self.client.post(CART, data_2, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Verify user1's cart has 2 items
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(len(response.json()), 2)  # type: ignore
+        
+        # Arrange: Create user2 and authenticate as user2
+        self.user2 = User.objects.create_user(username="user2", password="password123")
+        user2_client = APIClient()
+        user2_token = self.get_auth_token(username="user2", password="password123")
+        user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
+
+        # Act: User2 tries to clear user1's cart (but this actually clears user2's own empty cart)
+        response = user2_client.delete(f"{CART}clear/")
+        
+        # Assert: Should return 204 No Content (user2 successfully cleared their own empty cart)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+
+        # Database-level check: User1's cart items remain unchanged
+        self.assertEqual(Cart.objects.filter(user=self.user1).count(), 2)
+        self.assertTrue(Cart.objects.filter(user=self.user1, menuitem=menu_item_1).exists())
+        self.assertTrue(Cart.objects.filter(user=self.user1, menuitem=menu_item_2).exists())
+        
+        # Database-level check: User2 still has no cart items (cleared empty cart)
+        self.assertEqual(Cart.objects.filter(user=self.user2).count(), 0)
+
+    # === Clear Cart - Input Validation Tests ===
+    
+    def test_auth_user_can_clear_empty_cart(self):
+        # Arrange: Ensure cart is empty
+        Cart.objects.filter(user=self.user1).delete()
+        
+        # Verify cart is empty
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore
+        
+        # Act: Clear empty cart
+        response = self.client.delete(f"{CART}clear/")
+        
+        # Assert: Should return 204 No Content (clearing empty cart is allowed)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+        
+        # Assert: Cart should still be empty
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore
+        
+        # Database-level check: Cart should still be empty
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+    
+    def test_clear_cart_ignores_request_body(self):
+        # Arrange: Add item to cart
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        data = {"menuitem": menu_item.id, "quantity": 1}    # type: ignore
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Verify cart has 1 item
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(len(response.json()), 1)  # type: ignore
+        
+        # Act: Clear cart with request body (should be ignored)
+        invalid_body = {
+            "menuitem": "invalid_data",
+            "quantity": "this_should_be_ignored",
+            "extra_field": "also_ignored"
+        }
+        response = self.client.delete(f"{CART}clear/", data=invalid_body, format="json")
+        
+        # Assert: Should return 204 No Content (body is ignored)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+        
+        # Assert: Cart should be cleared regardless of invalid body
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore
+        
+        # Database-level check: Cart should be empty
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
