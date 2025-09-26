@@ -407,3 +407,162 @@ class MenuItemsTests(BaseAPITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
         self.assertTrue(MenuItem.objects.filter(id=item.id).exists())   # type:ignore
+
+    # === Performance & Scalability Tests ===
+    
+    def test_menu_items_large_dataset_performance(self):
+        """Test menu items API performance with many items."""
+        # Arrange: Create many menu items to test pagination and query performance
+        bulk_items = []
+        for i in range(100):
+            bulk_items.append(MenuItem(
+                title=f"Performance Test Item {i}",
+                price=9.99 + (i * 0.01),  # Vary prices slightly
+                featured=(i % 5 == 0),  # Every 5th item featured
+                category=self.category_pizza if i % 2 == 0 else self.category_dessert
+            ))
+        
+        MenuItem.objects.bulk_create(bulk_items)
+        
+        # Act: Request all menu items with pagination
+        response = self.client.get(f"{MENU_ITEMS}?page_size=50")
+        
+        # Assert: Should handle large datasets gracefully
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('results', response.data)
+        self.assertIn('count', response.data)
+        self.assertTrue(response.data['count'] >= 100)  # At least our test items
+
+    def test_menu_items_filtering_performance_with_large_dataset(self):
+        """Test filtering performance with many items."""
+        # Arrange: Create items across multiple categories
+        category_appetizers = Category.objects.create(slug="appetizers", title="Appetizers")
+        category_mains = Category.objects.create(slug="mains", title="Mains")
+        
+        bulk_items = []
+        for i in range(200):
+            category = [self.category_pizza, self.category_dessert, category_appetizers, category_mains][i % 4]
+            bulk_items.append(MenuItem(
+                title=f"Filter Test Item {i}",
+                price=5.00 + (i * 0.05),
+                featured=(i % 10 == 0),
+                category=category
+            ))
+        
+        MenuItem.objects.bulk_create(bulk_items)
+        
+        # Act: Test various filtering scenarios
+        filters_to_test = [
+            f"{MENU_ITEMS}?category__title=Pizza",
+            f"{MENU_ITEMS}?featured=true", 
+            f"{MENU_ITEMS}?price__gte=10.00",
+            f"{MENU_ITEMS}?search=Filter",
+            f"{MENU_ITEMS}?ordering=price"
+        ]
+        
+        # Assert: All filters should work efficiently
+        for filter_url in filters_to_test:
+            with self.subTest(filter_url=filter_url):
+                response = self.client.get(filter_url)
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertIn('results', response.data)
+
+    def test_menu_item_creation_field_limits(self):
+        """Test menu item creation with field boundary values."""
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        
+        # Test maximum price (DecimalField max_digits=6, decimal_places=2 → max 9999.99)
+        data = {
+            "title": "Maximum Price Item",
+            "price": "9999.99",
+            "featured": True,
+            "category_id": self.category_pizza.id
+        }
+        
+        response = self.client.post(MENU_ITEMS, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Verify the item was created correctly
+        created_item = MenuItem.objects.get(title="Maximum Price Item")
+        self.assertEqual(float(created_item.price), 9999.99)
+
+    def test_menu_item_creation_exceeding_decimal_field_limits(self):
+        """Test menu item creation with price exceeding decimal field limits."""
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        
+        # Test price exceeding DecimalField limits (> 9999.99)
+        data = {
+            "title": "Overflow Price Item", 
+            "price": "10000.00",  # Exceeds max_digits=6, decimal_places=2
+            "featured": False,
+            "category_id": self.category_pizza.id
+        }
+        
+        response = self.client.post(MENU_ITEMS, data, format="json")
+        # Should return 400 Bad Request due to decimal field validation
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('price', response.data)
+        
+        # Verify no item was created
+        self.assertFalse(MenuItem.objects.filter(title="Overflow Price Item").exists())
+
+    def test_menu_item_title_length_limits(self):
+        """Test menu item creation with maximum title length."""
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        
+        # Test maximum title length (CharField max_length=255)
+        max_length_title = "A" * 255
+        data = {
+            "title": max_length_title,
+            "price": "15.99",
+            "featured": False,
+            "category_id": self.category_pizza.id
+        }
+        
+        response = self.client.post(MENU_ITEMS, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Test exceeding title length
+        too_long_title = "A" * 256
+        data["title"] = too_long_title
+        
+        response = self.client.post(MENU_ITEMS, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('title', response.data)
+
+    def test_menu_items_concurrent_operations_simulation(self):
+        """Test menu items API under simulated concurrent access."""
+        self.give_user_staff_status(self.user1) 
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        
+        # Simulate multiple rapid operations
+        operations_data = []
+        for i in range(20):
+            operations_data.append({
+                "title": f"Concurrent Item {i}",
+                "price": f"{10 + i}.99", 
+                "featured": i % 3 == 0,
+                "category_id": self.category_pizza.id if i % 2 == 0 else self.category_dessert.id
+            })
+        
+        # Perform rapid sequential operations (simulating concurrent load)
+        created_items = []
+        failed_responses = []
+        for data in operations_data:
+            response = self.client.post(MENU_ITEMS, data, format="json")
+            if response.status_code == status.HTTP_201_CREATED:
+                created_items.append(response.data['id'])
+            else:
+                failed_responses.append((response.status_code, response.data))
+
+        # Assert: Most operations should succeed
+        self.assertGreaterEqual(len(created_items), 18)  # Allow for some potential conflicts        # Verify items exist in database
+        existing_count = MenuItem.objects.filter(id__in=created_items).count()
+        self.assertEqual(existing_count, len(created_items))

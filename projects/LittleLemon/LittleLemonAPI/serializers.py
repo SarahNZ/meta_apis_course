@@ -15,10 +15,19 @@ class CategorySerializer(serializers.ModelSerializer):
         validators = [UniqueValidator(queryset = Category.objects.all())]
     )
     
-    slug = serializers.CharField(
-        max_length = 255,
+    slug = serializers.SlugField(
+        max_length = 50,  # SlugField default max_length
         validators = [UniqueValidator(queryset = Category.objects.all())]
     )
+    
+    def validate_slug(self, value):
+        """Additional slug validation to match Django's SlugField."""
+        import re
+        if not re.match(r'^[-a-zA-Z0-9_]+$', value):
+            raise serializers.ValidationError(
+                'Enter a valid "slug" consisting of letters, numbers, underscores or hyphens.'
+            )
+        return value
         
 class MenuItemSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only = True)

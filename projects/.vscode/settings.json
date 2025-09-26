@@ -14,5 +14,8 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestArgs": [
         "LittleLemon/tests"
-    ]
+    ],
+        "terminal.integrated.shellIntegration.enabled": true,
+        "terminal.integrated.shellIntegration.decorationsEnabled": "both",
+        "terminal.integrated.shellIntegration.history": 100
 }

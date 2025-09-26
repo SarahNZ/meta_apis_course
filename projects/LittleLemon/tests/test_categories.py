@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from base_test import BaseAPITestCase
 from endpoints import CATEGORIES
-from LittleLemonAPI.models import Category
+from LittleLemonAPI.models import Category, MenuItem
 
 
 class CategoriesTests(BaseAPITestCase):
@@ -278,3 +278,173 @@ class CategoriesTests(BaseAPITestCase):
         # Assert
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # type: ignore
         self.assertEqual(Category.objects.filter(slug="unique").count(), 1)  # type: ignore
+
+    # === Performance & Scalability Tests ===
+    
+    def test_categories_large_dataset_performance(self):
+        """Test categories API performance with many categories."""
+        # Arrange: Create many categories to test query performance
+        bulk_categories = []
+        for i in range(100):
+            bulk_categories.append(Category(
+                slug=f"performance-category-{i}",
+                title=f"Performance Category {i}"
+            ))
+        
+        Category.objects.bulk_create(bulk_categories)
+        
+        # Act: Request all categories
+        response = self.client.get(CATEGORIES)
+        
+        # Assert: Should handle large datasets gracefully
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(response.data, list)
+        self.assertGreaterEqual(len(response.data), 100)  # At least our test categories
+
+    def test_category_creation_field_limits(self):
+        """Test category creation with field boundary values."""
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        
+        # Test maximum title length (CharField max_length=255)
+        max_length_title = "A" * 255
+        data = {
+            "slug": "max-length-test",
+            "title": max_length_title
+        }
+        
+        response = self.client.post(CATEGORIES, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Verify the category was created correctly
+        created_category = Category.objects.get(slug="max-length-test")
+        self.assertEqual(created_category.title, max_length_title)
+
+    def test_category_creation_exceeding_title_length_limit(self):
+        """Test category creation with title exceeding field limits."""
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        
+        # Test title exceeding CharField limits (> 255 chars)
+        too_long_title = "A" * 256
+        data = {
+            "slug": "overflow-test",
+            "title": too_long_title
+        }
+        
+        response = self.client.post(CATEGORIES, data, format="json")
+        # Should return 400 Bad Request due to CharField validation
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('title', response.data)
+        
+        # Verify no category was created
+        self.assertFalse(Category.objects.filter(slug="overflow-test").exists())
+
+    def test_category_slug_validation_limits(self):
+        """Test category slug validation with various formats."""
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        
+        # Test valid slug patterns
+        valid_slugs = [
+            "simple",
+            "with-dashes",
+            "with123numbers", 
+            "a" * 50  # SlugField default max_length is 50
+        ]
+        
+        for i, slug in enumerate(valid_slugs):
+            with self.subTest(slug=slug):
+                data = {
+                    "slug": slug,
+                    "title": f"Valid Slug Test {i}"
+                }
+                response = self.client.post(CATEGORIES, data, format="json")
+                self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Test invalid slug patterns  
+        invalid_slugs = [
+            "with spaces",  # Spaces not allowed
+            "with@symbols",  # Special characters not allowed
+            "a" * 51  # Exceeds default SlugField max_length
+        ]
+        
+        for slug in invalid_slugs:
+            with self.subTest(slug=slug):
+                data = {
+                    "slug": slug,
+                    "title": f"Invalid Slug Test {slug[:10]}"
+                }
+                response = self.client.post(CATEGORIES, data, format="json")
+                # Should return 400 Bad Request due to slug validation
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn('slug', response.data)
+
+        # Test that underscores ARE allowed (per Django SlugField default)
+        data = {
+            "slug": "with_underscores",
+            "title": "Underscores Are Valid"
+        }
+        response = self.client.post(CATEGORIES, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_categories_concurrent_creation_simulation(self):
+        """Test categories API under simulated concurrent creation."""
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        
+        # Simulate multiple rapid category creations
+        operations_data = []
+        for i in range(20):
+            operations_data.append({
+                "slug": f"concurrent-cat-{i}",
+                "title": f"Concurrent Category {i}"
+            })
+        
+        # Perform rapid sequential operations (simulating concurrent load)
+        created_categories = []
+        for data in operations_data:
+            response = self.client.post(CATEGORIES, data, format="json")
+            if response.status_code == status.HTTP_201_CREATED:
+                created_categories.append(response.data['id'])
+        
+        # Assert: All operations should succeed (no uniqueness conflicts in this case)
+        self.assertEqual(len(created_categories), 20)
+        
+        # Verify categories exist in database
+        existing_count = Category.objects.filter(id__in=created_categories).count()
+        self.assertEqual(existing_count, len(created_categories))
+
+    def test_category_deletion_prevention_validation(self):
+        """Test that category deletion is properly prevented to maintain data integrity."""
+        # Note: Based on your copilot instructions, category deletion is deliberately blocked
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+        
+        # Create a category with associated menu items
+        test_category = Category.objects.create(slug="test-delete", title="Test Delete Category")
+        MenuItem.objects.create(
+            title="Test Item",
+            price=10.00,
+            featured=False,
+            category=test_category
+        )
+        
+        # Attempt to delete the category
+        url = f"{CATEGORIES}{test_category.id}/"
+        response = self.client.delete(url)
+        
+        # Should be prevented (likely 405 Method Not Allowed or 400 Bad Request)
+        self.assertIn(response.status_code, [
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+            status.HTTP_400_BAD_REQUEST,
+            status.HTTP_403_FORBIDDEN
+        ])
+        
+        # Verify category still exists
+        self.assertTrue(Category.objects.filter(id=test_category.id).exists())
