@@ -3,6 +3,7 @@ from rest_framework.validators import UniqueValidator
 from django.contrib.auth.models import User
 from .models import Cart, Category, MenuItem
 import bleach
+from decimal import Decimal, InvalidOperation
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -77,7 +78,36 @@ class CartSerializer(serializers.ModelSerializer):
     def validate_quantity(self, value):
         if value < 1:
             raise serializers.ValidationError('Quantity must be at least 1')
+        
+        # SmallIntegerField has range -32768 to 32767
+        if value > 32767:
+            raise serializers.ValidationError('Quantity cannot exceed 32,767')
+        
         return value
+    
+    def validate(self, data):
+        """
+        Cross-field validation to prevent decimal overflow when calculating price.
+        """
+        if 'quantity' in data and 'menuitem' in data:
+            quantity = data['quantity']
+            menuitem = data['menuitem']
+            unit_price = menuitem.price
+            
+            # Check if quantity × unit_price would cause decimal overflow
+            # DecimalField(max_digits=6, decimal_places=2) has max value 9999.99
+            try:
+                calculated_price = Decimal(str(quantity)) * unit_price
+                if calculated_price > Decimal('9999.99'):
+                    raise serializers.ValidationError({
+                        'quantity': f'Quantity too large. Total price ({calculated_price}) would exceed maximum allowed value (9999.99)'
+                    })
+            except (InvalidOperation, ValueError) as e:
+                raise serializers.ValidationError({
+                    'quantity': 'Invalid quantity - calculation would cause overflow'
+                })
+        
+        return data
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

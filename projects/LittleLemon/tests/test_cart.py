@@ -1050,3 +1050,202 @@ class CartTests(BaseAPITestCase):
         
         # Database-level check: Cart should be empty
         self.assertFalse(Cart.objects.filter(user=self.user1).exists())
+
+
+# === Performance & Scalability Tests ===
+
+    def test_cart_handles_maximum_realistic_quantity(self):
+        # Arrange: Test realistic high quantity that fits within DecimalField constraints
+        # DecimalField(max_digits=6, decimal_places=2) allows max value 9999.99
+        # Margherita price is 10.00, so max quantity = 999 (999 * 10.00 = 9990.00)
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        max_safe_quantity = 999  # 999 * 10.00 = 9990.00 < 9999.99 limit
+        data = {"menuitem": menu_item.id, "quantity": max_safe_quantity}    # type: ignore
+
+        # Act: Add item with maximum safe quantity
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Should succeed
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Assert: Response should contain correct quantity
+        response_data = response.json()  # type: ignore
+        self.assertEqual(response_data["quantity"], max_safe_quantity)  # type: ignore
+        
+        # Assert: Total price calculation should work correctly
+        expected_total = menu_item.price * max_safe_quantity
+        self.assertEqual(response_data["price"], str(expected_total))  # type: ignore
+
+        # Database-level check: Cart item should be created with correct quantity
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.quantity, max_safe_quantity)
+        self.assertEqual(cart_item.price, expected_total)
+
+    def test_cart_rejects_quantity_causing_decimal_overflow(self):
+        # Arrange: Test quantity that would cause DecimalField overflow
+        # Margherita price is 10.00, quantity 1000 would = 10000.00 > 9999.99 limit
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        overflow_quantity = 1000  # 1000 * 10.00 = 10000.00 > DecimalField max (9999.99)
+        data = {"menuitem": menu_item.id, "quantity": overflow_quantity}    # type: ignore
+
+        # Act: Try to add item with quantity causing decimal overflow
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Should return 400 Bad Request with proper validation error
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('quantity', response.data)
+        self.assertIn('exceed maximum allowed value', str(response.data['quantity'][0]))
+
+        # Assert: No cart item should be created due to validation failure
+        self.assertFalse(Cart.objects.filter(user=self.user1, menuitem=menu_item).exists())
+
+    def test_cart_rejects_quantity_exceeding_smallintegerfield_limit(self):
+        # Arrange: Test quantity that exceeds SmallIntegerField maximum (32767)
+        menu_item = get_object_or_404(MenuItem, title="Apple Pie")  # Use cheaper item to avoid decimal overflow first
+        invalid_quantity = 32768  # Exceeds SmallIntegerField maximum (32767)
+        data = {"menuitem": menu_item.id, "quantity": invalid_quantity}    # type: ignore
+
+        # Act: Try to add item with excessive quantity
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Should return 400 Bad Request with proper validation error
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('quantity', response.data)
+        self.assertIn('cannot exceed 32,767', str(response.data['quantity'][0]))
+
+        # Assert: No cart item should be created due to validation failure
+        self.assertFalse(Cart.objects.filter(user=self.user1, menuitem=menu_item).exists())
+    
+    def test_cart_handles_large_quantity_updates_within_limits(self):
+        # Arrange: Add item with small quantity first
+        menu_item = get_object_or_404(MenuItem, title="Margherita")  # Price: 10.00
+        initial_data = {"menuitem": menu_item.id, "quantity": 100}    # type: ignore
+        response = self.client.post(CART, initial_data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+
+        # Act: Add more quantity to existing item (should cumulate)
+        # Keep total under DecimalField limit: 100 + 800 = 900, 900 * 10.00 = 9000.00 < 9999.99
+        additional_quantity = 800
+        update_data = {"menuitem": menu_item.id, "quantity": additional_quantity}    # type: ignore
+        response = self.client.post(CART, update_data, format="json")
+
+        # Assert: Should succeed and cumulate quantities
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        
+        # Assert: Total quantity should be cumulative
+        response_data = response.json()  # type: ignore
+        expected_total_quantity = 100 + additional_quantity  # 900
+        self.assertEqual(response_data["quantity"], expected_total_quantity)  # type: ignore
+        
+        # Assert: Price calculation should be correct
+        expected_total_price = menu_item.price * expected_total_quantity  # 9000.00
+        self.assertEqual(response_data["price"], str(expected_total_price))  # type: ignore
+
+        # Database-level check: Verify cumulative quantity
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.quantity, expected_total_quantity)
+        self.assertEqual(cart_item.price, expected_total_price)
+
+    def test_cart_handles_maximum_number_of_different_items(self):
+        # Arrange: Get all available menu items and create additional ones if needed
+        existing_items = MenuItem.objects.all()
+        
+        # Create additional menu items to test scalability (target: 50+ items)
+        items_needed = max(50 - existing_items.count(), 10)  # At least 10 for meaningful test
+        created_items = []
+        
+        for i in range(items_needed):
+            item = MenuItem.objects.create(
+                title=f"Test Item {i}",
+                price=9.99 + i,  # Vary prices
+                featured=False,
+                category=self.category_pizza
+            )
+            created_items.append(item)
+
+        all_items = list(existing_items) + created_items
+        items_to_add = all_items[:50]  # Test with 50 different items
+
+        # Act: Add many different items to cart
+        for i, item in enumerate(items_to_add):
+            data = {"menuitem": item.id, "quantity": i + 1}    # type: ignore
+            response = self.client.post(CART, data, format="json")
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+
+        # Act: Retrieve cart
+        response = self.client.get(CART)
+
+        # Assert: Should successfully return all items
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        cart_items = response.json()  # type: ignore
+        self.assertEqual(len(cart_items), len(items_to_add))  # type: ignore
+
+        # Database-level check: Verify all items exist in cart
+        cart_count = Cart.objects.filter(user=self.user1).count()
+        self.assertEqual(cart_count, len(items_to_add))
+
+        # Cleanup: Remove created test items
+        MenuItem.objects.filter(title__startswith="Test Item").delete()
+
+    def test_cart_clear_performance_with_many_items(self):
+        # Arrange: Add many items to cart
+        menu_items = [
+            get_object_or_404(MenuItem, title="Margherita"),
+            get_object_or_404(MenuItem, title="Apple Pie"),
+            get_object_or_404(MenuItem, title="Pepperoni")
+        ]
+        
+        # Add each item multiple times to create many cart entries
+        for i in range(20):  # Create 60 cart operations total
+            for j, item in enumerate(menu_items):
+                data = {"menuitem": item.id, "quantity": 1}    # type: ignore
+                response = self.client.post(CART, data, format="json")
+                self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+
+        # Verify cart has items with cumulative quantities
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        cart_items = response.json()  # type: ignore
+        self.assertEqual(len(cart_items), len(menu_items))  # type: ignore, 3 unique items
+        
+        # Verify quantities were cumulated correctly
+        for item_data in cart_items:
+            self.assertEqual(item_data["quantity"], 20)  # type: ignore, each added 20 times
+
+        # Act: Clear cart with many items
+        response = self.client.delete(f"{CART}clear/")
+
+        # Assert: Should successfully clear all items
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)  # type: ignore
+
+        # Assert: Cart should be empty
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
+        self.assertEqual(response.json(), [])  # type: ignore
+
+        # Database-level check: All cart items should be deleted
+        self.assertEqual(Cart.objects.filter(user=self.user1).count(), 0)
+
+    def test_cart_price_calculation_accuracy_with_large_quantities(self):
+        # Arrange: Use item with decimal price, keeping within DecimalField limits
+        menu_item = get_object_or_404(MenuItem, title="Apple Pie")  # Price: 11.00
+        # Max safe quantity: 9999.99 / 11.00 = ~909, use 900 to be safe
+        large_quantity = 900
+        data = {"menuitem": menu_item.id, "quantity": large_quantity}    # type: ignore
+
+        # Act: Add large quantity
+        response = self.client.post(CART, data, format="json")
+
+        # Assert: Should succeed
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+
+        # Assert: Price calculation should be accurate
+        response_data = response.json()  # type: ignore
+        expected_total = menu_item.price * large_quantity  # 11.00 * 900 = 9900.00
+        self.assertEqual(response_data["price"], str(expected_total))  # type: ignore
+        self.assertEqual(response_data["unit_price"], str(menu_item.price))  # type: ignore
+
+        # Database-level check: Verify accurate price calculation
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.price, expected_total)
+        self.assertEqual(cart_item.unit_price, menu_item.price)
