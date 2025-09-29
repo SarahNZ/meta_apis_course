@@ -4,6 +4,7 @@ DELIVERY_CREW = "/api/groups/delivery-crew/users/"
 LOGIN = "/auth/token/login/"  # Djoser login endpoint
 MANAGERS = "/api/groups/manager/users/"
 MENU_ITEMS = "/api/menu-items/"
+ORDERS = "/api/orders/"
 USERS = "/api/users/"
 
 '''

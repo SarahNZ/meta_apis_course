@@ -197,19 +197,19 @@ CREATE TEST USERS AND GROUPS ✅
         - Customers can view the menu items in their cart ✅
             GET /api/cart/menu-items for the current user token  
         - Customers can't view other customer's cart (menu items) ✅
-        - Customers can empty their cart at any time
+        - Customers can empty their cart at any time ✅
             DELETE /api/users/{userId}/cart
             or 
             DELETE /api/cart/menu-items - deletes all menu items created by the current user token
             - Valid, return error if cart already empty
-        - Customers can't empty the carts of other customers
+        - Customers can't empty the carts of other customers ✅
         - One customer should be able to have only one cart at a time
             - Check valid action & try to create more than one cart
             - Check customer can't edit another customer's cart
-        - One cart can have 1 or many items
-        - Test cart functinality in Insomnia and create automated tests for important test cases - Up to here!
+        - One cart can have 1 or many items ✅
+        - Test cart functinality in Insomnia and create automated tests for important test cases ✅
 
-    * ORDER MANAGEMENT
+    * ORDER MANAGEMENT - in progress
 
         * CUSTOMER
             - Customers can place one or more orders
@@ -217,7 +217,7 @@ CREATE TEST USERS AND GROUPS ✅
                     gets current cart items from the cart endpoints and adds those items to the 
                     items in the order items table. Then deletes all items from the cart for this user
                 - Check valid/invalid & auth/not auth actions
-            - Assume delivery crew can place orders - Would check in real world
+            - Assume delivery crew can place orders
             - Check unauthenticated users can't place an order
             -Customers can view a list of their orders (at any stage and see the status and total price)
                 I.e. GET /api/orders with Customer token - returns all orders with order items created by the user
@@ -225,10 +225,6 @@ CREATE TEST USERS AND GROUPS ✅
             - Customer can view details of a single order 
                 GET /api/orders/{orderId} - displays all items for this order id. 
                 - displays an error if the order id doesn't belong to the current user 
-            - Customer can update their order
-                PUT, PATCH /api/orders/{orderId}
-                - but not update delivery person or status
-            - Assume customer can't delete their order - Would check if real world
         
         * MANAGER
             - Manager can view all orders for all users

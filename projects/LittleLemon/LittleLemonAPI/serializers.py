@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.models import User
-from .models import Cart, Category, MenuItem
+from .models import Cart, Category, MenuItem, Order, OrderItem
 import bleach
 from decimal import Decimal, InvalidOperation
 
@@ -122,3 +122,25 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User  
         fields = ["id", "username", "email"]
+        
+        
+class OrderItemSerializer(serializers.ModelSerializer):
+    menuitem_title = serializers.ReadOnlyField(source="menuitem.title")
+    menuitem_category = serializers.ReadOnlyField(source="menuitem.category.title")
+    
+    class Meta:
+        model = OrderItem
+        fields = ["id", "menuitem", "menuitem_title", "menuitem_category", "quantity", "unit_price", "price"]
+        read_only_fields = ["menuitem_title", "menuitem_category"]
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    order_items = OrderItemSerializer(many=True, read_only=True)
+    user_name = serializers.ReadOnlyField(source="user.username")
+    delivery_crew_name = serializers.ReadOnlyField(source="delivery_crew.username")
+    
+    class Meta:
+        model = Order  
+        fields = ["id", "user", "user_name", "delivery_crew", "delivery_crew_name", "status", "total", "date", "order_items"]
+        
+        read_only_fields = ["user", "user_name", "total", "date", "order_items"]

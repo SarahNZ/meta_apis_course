@@ -7,10 +7,10 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import filters, status, viewsets
 from .filters import MenuItemFilter
-from .models import Cart, Category, MenuItem
+from .models import Cart, Category, MenuItem, Order, OrderItem
 from .pagination import CustomPageNumberPagination
 from .permissions import IsStaffOrReadOnly
-from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, UserSerializer
+from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, OrderItemSerializer, OrderSerializer, UserSerializer
 
 logger = logging.getLogger('LittleLemonAPI')
 
@@ -273,7 +273,7 @@ class CategoriesViewSet(viewsets.ModelViewSet):
             status = status.HTTP_403_FORBIDDEN
         )
         
-# Endpoint /api/cart/
+        
 class CartViewSet(viewsets.ViewSet):
     """
     Viewset for managing user's cart.
@@ -385,3 +385,71 @@ class CartViewSet(viewsets.ViewSet):
         logger.info(f"SUCCESS: User '{request.user.username}' cleared {items_count} items from cart")
         
         return Response(status = status.HTTP_204_NO_CONTENT)
+    
+
+class OrderViewSet(viewsets.ViewSet):
+    """
+    Viewset for managing user's orders.
+    
+    View orders: GET /api/orders/
+    Place an order: POST /api/orders/ (include info in body)
+    Can't modify the order. I.e. Update or delete it (out of scope)
+    """
+    
+    permission_classes = [IsAuthenticated]
+    
+    def list(self, request):
+        """
+        List all orders for the authenticated user
+        """
+        queryset = Order.objects.filter(user = request.user)
+        serializer = OrderSerializer(queryset, many = True)
+        return Response(serializer.data)
+    
+    def create(self, request):
+        """
+        Create a new order from the user's cart items
+        POST /api/orders/
+        """
+        # Check if user has items in cart
+        cart_items = Cart.objects.filter(user=request.user)
+        if not cart_items.exists():
+            logger.warning(f"User '{request.user.username}' attempted to create order with empty cart")
+            return Response(
+                {"detail": "Cannot create order with empty cart"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Calculate total price from cart items
+        total = sum(cart_item.price for cart_item in cart_items)
+        
+        logger.info(f"User '{request.user.username}' creating order with total ${total}")
+        
+        # Create the order - date is automatically set by auto_now_add=True
+        order = Order.objects.create(
+            user=request.user,
+            total=total
+        )
+        
+        # Create OrderItem records for each cart item
+        order_items_created = 0
+        for cart_item in cart_items:
+            OrderItem.objects.create(
+                order=order,
+                menuitem=cart_item.menuitem,
+                quantity=cart_item.quantity,
+                unit_price=cart_item.unit_price,
+                price=cart_item.price
+            )
+            order_items_created += 1
+        
+        # Clear the cart after successfully creating the order and order items
+        cart_items.delete()
+        
+        logger.info(f"SUCCESS: User '{request.user.username}' created order {order.id} with {order_items_created} items and total ${total}")
+        
+        # Return the created order
+        serializer = OrderSerializer(order)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+
