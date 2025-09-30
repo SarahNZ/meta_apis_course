@@ -17,8 +17,8 @@ Customers (auth users) can browse all categories ✅
 Customers can add menu items to the cart ✅
 Customers can access previously added items in the cart ✅
 
-Customers can place orders
-Customers can browse their own orders
+Customers can place orders ✅
+Customers can browse their own orders ✅
 
 Managers can assign orders to the delivery crew
 Delivery crew can access orders assigned to them

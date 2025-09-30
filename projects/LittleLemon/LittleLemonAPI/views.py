@@ -391,9 +391,9 @@ class OrderViewSet(viewsets.ViewSet):
     """
     Viewset for managing user's orders.
     
-    View orders: GET /api/orders/
-    Place an order: POST /api/orders/ (include info in body)
-    Can't modify the order. I.e. Update or delete it (out of scope)
+    Customers can view their orders: GET /api/orders/
+    Customers can place an order: POST /api/orders/ (include info in body)
+    Customers can't modify their order. I.e. Update or delete it (out of scope)
     """
     
     permission_classes = [IsAuthenticated]
@@ -451,5 +451,3 @@ class OrderViewSet(viewsets.ViewSet):
         # Return the created order
         serializer = OrderSerializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
-

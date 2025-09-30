@@ -212,16 +212,16 @@ CREATE TEST USERS AND GROUPS ✅
     * ORDER MANAGEMENT - in progress
 
         * CUSTOMER
-            - Customers can place one or more orders
+            - Customers can place one or more orders ✅
                 POST /api/orders - Creates a new order item for the current user,
                     gets current cart items from the cart endpoints and adds those items to the 
                     items in the order items table. Then deletes all items from the cart for this user
-                - Check valid/invalid & auth/not auth actions
+                - Check valid/invalid & auth/not auth actions - TODO
             - Assume delivery crew can place orders
-            - Check unauthenticated users can't place an order
-            -Customers can view a list of their orders (at any stage and see the status and total price)
+            - Check unauthenticated users can't place an order ✅
+            -Customers can view a list of their orders (at any stage and see the status and total price) ✅
                 I.e. GET /api/orders with Customer token - returns all orders with order items created by the user
-            - Check unathorized users can't see a list of customers' order, and customer can't see other customers orders
+            - Check unathorized users can't see a list of customers' order, and customer can't see other customers orders ✅
             - Customer can view details of a single order 
                 GET /api/orders/{orderId} - displays all items for this order id. 
                 - displays an error if the order id doesn't belong to the current user 

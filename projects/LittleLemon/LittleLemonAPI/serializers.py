@@ -139,8 +139,20 @@ class OrderSerializer(serializers.ModelSerializer):
     user_name = serializers.ReadOnlyField(source="user.username")
     delivery_crew_name = serializers.ReadOnlyField(source="delivery_crew.username")
     
+    # Add formatted date fields for better readability
+    date_formatted = serializers.SerializerMethodField()
+    time_formatted = serializers.SerializerMethodField()
+    
     class Meta:
         model = Order  
-        fields = ["id", "user", "user_name", "delivery_crew", "delivery_crew_name", "status", "total", "date", "order_items"]
+        fields = ["id", "user", "user_name", "delivery_crew", "delivery_crew_name", "status", "total", "date", "date_formatted", "time_formatted", "order_items"]
         
         read_only_fields = ["user", "user_name", "total", "date", "order_items"]
+    
+    def get_date_formatted(self, obj):
+        """Return date in readable format: 'September 30, 2025'"""
+        return obj.date.strftime('%B %d, %Y')
+    
+    def get_time_formatted(self, obj):
+        """Return time in readable format: '2:31 PM'"""
+        return obj.date.strftime('%I:%M %p')
