@@ -175,10 +175,9 @@ LOGGING = {
     'handlers': {
         'file': {
             'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs', 'littlelemon.log'),
-            'when': 'midnight',  # Rotate at midnight
-            'interval': 1,       # Every 1 day
+            'maxBytes': 1024 * 1024 * 2,  # 2 MB
             'backupCount': 30,   # Keep 30 days of logs
             'formatter': 'verbose',
             'encoding': 'utf-8',
