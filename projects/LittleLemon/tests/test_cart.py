@@ -39,100 +39,111 @@ class CartTests(BaseAPITestCase):
         # Authenticate default user
         token = self.get_auth_token()
         self.authenticate_client(token)
+
+    # === Helper Methods ===
+    
+    def _add_item_to_cart(self, menu_item, quantity):
+        """Helper method to add item to cart"""
+        data = {"menuitem": menu_item.id, "quantity": quantity}
+        response = self.client.post(CART, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        return response
+    
+    def _get_cart(self):
+        """Helper method to retrieve cart"""
+        response = self.client.get(CART)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response.json()
+    
+    def _clear_cart(self):
+        """Helper method to clear user's cart"""
+        Cart.objects.filter(user=self.user1).delete()
+    
+    def _verify_cart_item(self, cart_item, menu_item, expected_quantity):
+        """Helper method to verify cart item properties"""
+        self.assertEqual(cart_item["menuitem"], menu_item.id)
+        self.assertEqual(cart_item["menuitem_title"], menu_item.title)
+        self.assertEqual(cart_item["quantity"], expected_quantity)
+        self.assertEqual(cart_item["unit_price"], str(menu_item.price))
+        self.assertEqual(cart_item["price"], str(menu_item.price * expected_quantity))
+    
+    def _verify_cart_contains_items(self, expected_count):
+        """Helper method to verify cart contains expected number of items"""
+        cart_items = self._get_cart()
+        self.assertEqual(len(cart_items), expected_count)
+        return cart_items
+    
+    def _verify_database_cart_item(self, menu_item, expected_quantity):
+        """Helper method to verify cart item in database"""
+        cart_item = Cart.objects.get(user=self.user1, menuitem=menu_item)
+        self.assertEqual(cart_item.quantity, expected_quantity)
+        return cart_item
+    
+    def _create_and_authenticate_user2(self):
+        """Helper method to create and authenticate a second user"""
+        self.user2 = User.objects.create_user(username="user2", password="password123")
+        user2_client = APIClient()
+        user2_token = self.get_auth_token(username="user2", password="password123")
+        user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
+        return user2_client
+    
+    def _create_anonymous_client(self):
+        """Helper method to create anonymous client"""
+        return APIClient()
+    
+    def _verify_unauthorized_response(self, response):
+        """Helper method to verify unauthorized response"""
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def _find_cart_item_by_menuitem(self, cart_items, menu_item):
+        """Helper method to find cart item by menu item ID"""
+        return next((item for item in cart_items if item["menuitem"] == menu_item.id), None)
     
 
     # === View and Create Cart Tests ===
 
     def test_authenticated_user_can_view_empty_cart(self):
-        # AAA: Arrange-Act-Assert
         # Arrange: Clear the cart
-        Cart.objects.filter(user=self.user1).delete()
+        self._clear_cart()
 
-        # Act: View cart
-        response = self.client.get(CART)
-
-        # Assert: Cart is empty
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        self.assertEqual(response.json(), [])  # type: ignore
+        # Act & Assert: Cart is empty
+        cart_items = self._get_cart()
+        self.assertEqual(cart_items, [])
 
         # Database-level check
-        self.assertFalse(Cart.objects.filter(user=self.user1).exists())  # type: ignore
+        self.assertFalse(Cart.objects.filter(user=self.user1).exists())
 
     def test_authenticated_user_can_add_and_retrieve_single_cart_item(self):
         # Arrange: Get menu item
         menu_item = get_object_or_404(MenuItem, title="Margherita")
-        data = {
-            "menuitem": menu_item.id,  # type: ignore
-            "quantity": 1
-        }
 
         # Act: Add item to cart
-        response = self.client.post(CART, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        self._add_item_to_cart(menu_item, 1)
 
-        # Act: View cart
-        response = self.client.get(CART)
-
-        # Assert: Cart has exactly one correct item
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        cart_items = response.json()  # type: ignore
-        self.assertEqual(len(cart_items), 1)  # type: ignore
-
-        item = cart_items[0]
-        self.assertEqual(item["menuitem"], menu_item.id)  # type: ignore
-        self.assertEqual(item["menuitem_title"], menu_item.title)  # type: ignore
-        self.assertEqual(item["quantity"], data["quantity"])  # type: ignore
-        self.assertEqual(item["unit_price"], str(menu_item.price))  # type: ignore
-        self.assertEqual(item["price"], str(menu_item.price * data["quantity"]))  # type: ignore
+        # Act & Assert: Cart has exactly one correct item
+        cart_items = self._verify_cart_contains_items(1)
+        self._verify_cart_item(cart_items[0], menu_item, 1)
 
         # Database-level check
-        self.assertEqual(
-            Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1
-        )
+        self.assertEqual(Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1)
 
     def test_authenticated_user_can_add_and_retrieve_two_different_cart_items(self):
-        # Arrange: Get menu item
+        # Arrange: Get menu items
         menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
-        data_1 = {
-            "menuitem": menu_item_1.id,  # type: ignore
-            "quantity": 1
-        }
-        
         menu_item_2 = get_object_or_404(MenuItem, title="Apple Pie")
-        data_2 = {
-            "menuitem": menu_item_2.id, # type: ignore
-            "quantity": 1
-        }
 
         # Act: Add items to cart
-        response = self.client.post(CART, data_1, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
-        response = self.client.post(CART, data_2, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        self._add_item_to_cart(menu_item_1, 1)
+        self._add_item_to_cart(menu_item_2, 1)
 
-        # Act: Retrieve cart
-        response = self.client.get(CART)
-
-        # Assert: Cart has exactly two correct items
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        cart_items = response.json()  # type: ignore
-        self.assertEqual(len(cart_items), 2)  # type: ignore
+        # Act & Assert: Cart has exactly two correct items
+        cart_items = self._verify_cart_contains_items(2)
 
         # Assert: The first cart item is correct
-        item = cart_items[0]
-        self.assertEqual(item["menuitem"], menu_item_1.id)  # type: ignore
-        self.assertEqual(item["menuitem_title"], menu_item_1.title)  # type: ignore
-        self.assertEqual(item["quantity"], data_1["quantity"])  # type: ignore
-        self.assertEqual(item["unit_price"], str(menu_item_1.price))  # type: ignore
-        self.assertEqual(item["price"], str(menu_item_1.price * data_1["quantity"]))  # type: ignore
+        self._verify_cart_item(cart_items[0], menu_item_1, 1)
         
         # Assert: The second cart item is correct
-        item = cart_items[1]
-        self.assertEqual(item["menuitem"], menu_item_2.id)  # type: ignore
-        self.assertEqual(item["menuitem_title"], menu_item_2.title)  # type: ignore
-        self.assertEqual(item["quantity"], data_2["quantity"])  # type: ignore
-        self.assertEqual(item["unit_price"], str(menu_item_2.price))  # type: ignore
-        self.assertEqual(item["price"], str(menu_item_2.price * data_2["quantity"]))  # type: ignore
+        self._verify_cart_item(cart_items[1], menu_item_2, 1)
 
         # Database-level check
         self.assertTrue(Cart.objects.filter(user=self.user1, menuitem=menu_item_1).exists())
@@ -141,34 +152,18 @@ class CartTests(BaseAPITestCase):
     def test_authenticated_user_can_add_same_item_twice(self):
         # Arrange: Get menu item
         menu_item = get_object_or_404(MenuItem, title="Margherita")
-        data = {"menuitem": menu_item.id,"quantity": 1}
 
         # Act: Add the same item twice
-        response = self.client.post(CART, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
-        response = self.client.post(CART, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
+        self._add_item_to_cart(menu_item, 1)
+        self._add_item_to_cart(menu_item, 1)
 
-        # Act: Retrieve cart
-        response = self.client.get(CART)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        cart_items = response.json()  # type: ignore
-        self.assertEqual(len(cart_items), 1)  # type: ignore, should still be one item in cart
-
-        # Assert: Quantity has been incremented
-        item = cart_items[0]
-        self.assertEqual(item["menuitem"], menu_item.id)  # type: ignore
-        self.assertEqual(item["quantity"], 2)  # type: ignore
-        self.assertEqual(item["unit_price"], str(menu_item.price))  # type: ignore
-        self.assertEqual(item["price"], str(menu_item.price * 2))  # type: ignore
+        # Act & Assert: Cart should still have one item with quantity 2
+        cart_items = self._verify_cart_contains_items(1)
+        self._verify_cart_item(cart_items[0], menu_item, 2)
 
         # Database-level check
-        self.assertEqual(
-            Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1
-        )
-        self.assertEqual(
-            Cart.objects.get(user=self.user1, menuitem=menu_item).quantity, 2
-        )  
+        self.assertEqual(Cart.objects.filter(user=self.user1, menuitem=menu_item).count(), 1)
+        self._verify_database_cart_item(menu_item, 2)  
         
     def test_authenticated_user_can_add_multiple_quantities_and_different_items(self):
         # Arrange: Get menu items
@@ -247,28 +242,20 @@ class CartTests(BaseAPITestCase):
     # === Cart Isolation Tests ===  
       
     def test_authenticated_user_cannot_view_another_users_cart(self):
-        # Arrange: Setup menu items
-        menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
-        
         # Arrange: User1 adds items to their cart
-        data_1 = {"menuitem": menu_item_1.id, "quantity": 1}    # type: ignore
-        self.client.post(CART, data_1, format="json")
+        menu_item_1 = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item_1, 1)
         
         # Verify user1's cart has 1 item
-        response = self.client.get(CART)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        self.assertEqual(len(response.json()), 1)  # type: ignore
+        cart_items = self._verify_cart_contains_items(1)
         
         # Arrange: Create user2 and authenticate as user2
-        self.user2 = User.objects.create_user(username="user2", password="password123")
-        user2_client = APIClient()
-        user2_token = self.get_auth_token(username="user2", password="password123")
-        user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
+        user2_client = self._create_and_authenticate_user2()
         
         # Act & Assert: User2 cannot view user1's cart (should see empty cart)
         response = user2_client.get(CART)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        self.assertEqual(response.json(), [])  # type: ignore, user2's cart should be empty
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), [])  # user2's cart should be empty
 
     def test_user_cannot_have_duplicate_cart_entries_for_same_menu_item(self):
         # Arrange: Get menu item

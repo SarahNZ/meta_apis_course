@@ -2,71 +2,122 @@ from tests.base_test import BaseAPITestCase
 from tests.endpoints import MANAGERS
 
 class ManagersPermissionTests(BaseAPITestCase):
+    
+    # === Helper Methods ===
+    
+    def _get_managers(self):
+        """Helper method to get managers list"""
+        response = self.client.get(MANAGERS)
+        self.assertEqual(response.status_code, 200)
+        return response
+    
+    def _verify_unauthorized_response(self, response):
+        """Helper method to verify unauthorized response"""
+        self.assertEqual(response.status_code, 401)
+    
+    def _verify_forbidden_response(self, response):
+        """Helper method to verify forbidden response"""
+        self.assertEqual(response.status_code, 403)
+    
+    def _create_and_authenticate_user(self, username, password="testpass123"):
+        """Helper method to create and authenticate user"""
+        from django.contrib.auth.models import User
+        user = User.objects.create_user(username=username, password=password)
+        token = self.get_auth_token(username=username, password=password)
+        self.authenticate_client(token)
+        return user
+    
+    def _create_multiple_users(self, count, prefix="user"):
+        """Helper method to create multiple users"""
+        from django.contrib.auth.models import User
+        users = []
+        for i in range(count):
+            user = User.objects.create_user(
+                username=f"{prefix}{i}",
+                password="testpass123"
+            )
+            users.append(user)
+        return users
+    
+    def _test_permission_for_users(self, users, expected_status, endpoint):
+        """Helper method to test permission for multiple users"""
+        from rest_framework.authtoken.models import Token
+        denied_count = 0
+        
+        for user in users:
+            token, _ = Token.objects.get_or_create(user=user)
+            self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+            response = self.client.get(endpoint)
+            if response.status_code == expected_status:
+                denied_count += 1
+        
+        return denied_count
+    
+    def _test_rapid_authentication_switching(self, users, expected_statuses, endpoint):
+        """Helper method to test rapid authentication switching"""
+        from rest_framework.authtoken.models import Token
+        permission_results = []
+        
+        for i, (user, expected_status) in enumerate(zip(users, expected_statuses)):
+            token, _ = Token.objects.get_or_create(user=user)
+            self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+            response = self.client.get(endpoint)
+            permission_results.append(response.status_code == expected_status)
+        
+        return permission_results
+
     def test_manager_views_list_of_users_in_manager_group(self):
+        # Arrange: Make user a manager
         self.add_user_to_manager_group(self.user1)
         token = self.get_auth_token()
         self.authenticate_client(token)
-        response = self.client.get(MANAGERS)
-        self.assertEqual(response.status_code, 200) # type: ignore
+        
+        # Act & Assert: Should be able to view managers
+        self._get_managers()
         
     def test_authenticated_and_authorized_admin_access(self):
+        # Arrange: Make user staff
         self.give_user_staff_status(self.user1)
         token = self.get_auth_token()
         self.authenticate_client(token)
-        response = self.client.get(MANAGERS)
-        self.assertEqual(response.status_code, 200) # type: ignore
+        
+        # Act & Assert: Should be able to view managers
+        self._get_managers()
         
     def test_unauthenticated_access(self):
+        # Act & Assert: Should be unauthorized
         response = self.client.get(MANAGERS)
-        self.assertEqual(response.status_code, 401) # 401 Unauthorized for unauthenticated users # type: ignore
+        self._verify_unauthorized_response(response)
 
     def test_authenticated_but_not_authorized_access(self):
+        # Arrange: Authenticate regular user
         token = self.get_auth_token()
         self.authenticate_client(token)
+        
+        # Act & Assert: Should be forbidden
         response = self.client.get(MANAGERS)
-        self.assertEqual(response.status_code, 403) # type: ignore
+        self._verify_forbidden_response(response)
 
     # === Performance & Scalability Tests ===
     
     def test_permission_checks_large_user_base_performance(self):
         """Test permission system performance with many users and roles."""
-        from django.contrib.auth.models import User
         from rest_framework import status
-        from tests.endpoints import CATEGORIES, MENU_ITEMS
         
         # Arrange: Create many users with different permission levels
-        regular_users = []
-        manager_users = []
+        regular_users = self._create_multiple_users(25, "regular")
+        manager_users = self._create_multiple_users(25, "manager")
         
-        # Create 25 regular users
-        for i in range(25):
-            user = User.objects.create_user(
-                username=f"regular{i}",
-                password="testpass123"
-            )
-            regular_users.append(user)
-        
-        # Create 25 manager users
-        for i in range(25):
-            user = User.objects.create_user(
-                username=f"manager{i}",
-                password="testpass123"
-            )
+        # Add manager users to manager group
+        for user in manager_users:
             self.add_user_to_manager_group(user)
-            manager_users.append(user)
         
-        # Act: Test permission checks for regular users (should be denied manager access)
-        denied_access_count = 0
-        for user in regular_users[:10]:  # Test subset for performance
-            # Get token for this user
-            from rest_framework.authtoken.models import Token
-            token, _ = Token.objects.get_or_create(user=user)
-            
-            # Test access to manager endpoint
-            self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
-            response = self.client.get(MANAGERS)
-            if response.status_code == status.HTTP_403_FORBIDDEN:
-                denied_access_count += 1
+        # Act & Assert: Test permission checks for regular users (should be denied manager access)
+        denied_access_count = self._test_permission_for_users(
+            regular_users[:10],  # Test subset for performance
+            status.HTTP_403_FORBIDDEN,
+            MANAGERS
+        )
         
         # Assert: All regular users should be denied manager access
         self.assertEqual(denied_access_count, 10)

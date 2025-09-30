@@ -17,80 +17,144 @@ class DeliveryCrewGroupTests(BaseAPITestCase):
         # Authenticate client with testuser1 token
         token = self.get_auth_token()
         self.authenticate_client(token)
+
+    # === Helper Methods ===
+    
+    def _get_delivery_crew(self):
+        """Helper method to get all delivery crew members"""
+        response = self.client.get(DELIVERY_CREW)
+        self.assertEqual(response.status_code, 200)
+        return response.data
+    
+    def _add_user_to_delivery_crew(self, username):
+        """Helper method to add user to delivery crew group"""
+        response = self.client.post(DELIVERY_CREW, {"username": username}, format="json")
+        return response
+    
+    def _remove_user_from_delivery_crew(self, user_id):
+        """Helper method to remove user from delivery crew group"""
+        response = self.client.delete(f"{DELIVERY_CREW}{user_id}/")
+        return response
+    
+    def _verify_user_in_delivery_crew_group(self, user, should_be_in_group=True):
+        """Helper method to verify user is/isn't in delivery crew group"""
+        in_group = user.groups.filter(name="Delivery Crew").exists()
+        if should_be_in_group:
+            self.assertTrue(in_group)
+        else:
+            self.assertFalse(in_group)
+    
+    def _verify_unauthorized_response(self, response):
+        """Helper method to verify unauthorized response"""
+        self.assertEqual(response.status_code, 401)
+    
+    def _verify_forbidden_response(self, response):
+        """Helper method to verify forbidden response"""
+        self.assertEqual(response.status_code, 403)
+    
+    def _verify_method_not_allowed_response(self, response):
+        """Helper method to verify method not allowed response"""
+        self.assertEqual(response.status_code, 405)
+    
+    def _verify_not_found_response(self, response):
+        """Helper method to verify not found response"""
+        self.assertEqual(response.status_code, 404)
+    
+    def _create_and_authenticate_non_manager(self, username="notmanager"):
+        """Helper method to create and authenticate non-manager user"""
+        user = User.objects.create_user(username=username, password=self.password)
+        token = self.get_auth_token(username=username, password=self.password)
+        self.authenticate_client(token)
+        return user
+    
+    def _clear_authentication(self):
+        """Helper method to clear client authentication"""
+        self.client.logout()
+    
+    def _verify_delivery_crew_returned(self, response_data):
+        """Helper method to verify all delivery crew members are returned"""
+        delivery_crew = Group.objects.get(name="Delivery Crew")
+        delivery_crew_usernames = [user.username for user in delivery_crew.user_set.all()]
+        response_usernames = [user["username"] for user in response_data]
+        for username in delivery_crew_usernames:
+            self.assertIn(username, response_usernames)
         
     # === View All Users in the Delivery Crew Group Tests ===
         
     def test_manager_views_all_users_in_delivery_crew_group(self):
-        response = self.client.get(DELIVERY_CREW)
-        self.assertEqual(response.status_code, 200) # type: ignore
-        # Check that all users in the Delivery Crew group are returned
-        delivery_crew = Group.objects.get(name = "Delivery Crew")
-        delivery_crew_usernames = [user.username for user in delivery_crew.user_set.all()]    # type: ignore
-        response_usernames = [user["username"] for user in response.data] # type: ignore
-        for username in delivery_crew_usernames:
-            self.assertIn(username, response_usernames) 
+        # Act & Assert: Get delivery crew and verify all are returned
+        response_data = self._get_delivery_crew()
+        self._verify_delivery_crew_returned(response_data) 
             
     def test_unauthorized_authenticated_user_cannot_view_all_delivery_crew_users(self):
-        # Create a user who is not in the manager group
-        user_non_manager = User.objects.create_user(username="notmanager", password=self.password)
-        token = self.get_auth_token(username="notmanager", password=self.password)
-        self.authenticate_client(token)
+        # Arrange: Create and authenticate non-manager user
+        self._create_and_authenticate_non_manager()
+        
+        # Act & Assert: Should be forbidden
         response = self.client.get(DELIVERY_CREW)
-        self.assertEqual(response.status_code, 403) # Forbidden for non-managers # type: ignore
+        self._verify_forbidden_response(response)
         
     def test_anonymous_user_cannot_view_delivery_crew_users(self):
-        # Unauthenticate the client
-        self.client.logout()
+        # Arrange: Clear authentication
+        self._clear_authentication()
+        
+        # Act & Assert: Should be unauthorized
         response = self.client.get(DELIVERY_CREW)
-        self.assertEqual(response.status_code, 401) # Unauthorized for anonymous users # type: ignore
+        self._verify_unauthorized_response(response)
         
 # === Add Users to the Delivery Crew Group Tests ===
         
     def test_manager_adds_user_to_delivery_crew_group(self):
-        # Create a new user to add to the delivery crew group
-        self.delivery_user = User.objects.create_user(username = "delivery_user", password = self.password)
-        response = self.client.post(DELIVERY_CREW, {"username": self.delivery_user.username}, format = "json")
-        self.assertEqual(response.status_code, 201) # type: ignore
-        self.assertTrue(self.user2.groups.filter(name = "Delivery Crew").exists())
+        # Arrange: Create a new user to add to the delivery crew group
+        self.delivery_user = User.objects.create_user(username="delivery_user", password=self.password)
+        
+        # Act & Assert: Add user to delivery crew and verify
+        response = self._add_user_to_delivery_crew(self.delivery_user.username)
+        self.assertEqual(response.status_code, 201)
+        self._verify_user_in_delivery_crew_group(self.delivery_user, should_be_in_group=True)
         
     def test_unsupported_http_methods_for_delivery_crew_endpoint_return_405(self):
-        response = self.client.put(DELIVERY_CREW, {"username": self.user2.username}, format = "json")
-        self.assertEqual(response.status_code, 405) # type: ignore
+        # Act & Assert: Unsupported method should return 405
+        response = self.client.put(DELIVERY_CREW, {"username": self.user2.username}, format="json")
+        self._verify_method_not_allowed_response(response)
         
     def test_unauthorized_authenticated_user_cannot_add_user_to_delivery_crew_group(self):
-        # Create and authenticate a non-manager user
-        User.objects.create_user(username="unauthorized", password=self.password)
-        token = self.get_auth_token(username="unauthorized", password=self.password)
-        self.authenticate_client(token)
-        response = self.client.post(DELIVERY_CREW, {"username": self.user3.username}, format="json")
-        self.assertEqual(response.status_code, 403) # Forbidden for non-managers # type: ignore
-        self.assertFalse(self.user3.groups.filter(name="Manager").exists())
+        # Arrange: Create a new user not in delivery crew and authenticate non-manager user
+        new_user = User.objects.create_user(username="newuser", password=self.password)
+        self._create_and_authenticate_non_manager("unauthorized")
+        
+        # Act & Assert: Should be forbidden
+        response = self._add_user_to_delivery_crew(new_user.username)
+        self._verify_forbidden_response(response)
+        self._verify_user_in_delivery_crew_group(new_user, should_be_in_group=False)
 
     def test_anonymous_user_cannot_add_user_to_delivery_crew_group(self):
-        # Unauthenticate the client
-        self.client.logout()
-        response = self.client.post(DELIVERY_CREW, {"username": "nonexistentuser"}, format = "json")
-        self.assertEqual(response.status_code, 401) # Should return 401 Unauthenticated # type: ignore
+        # Arrange: Clear authentication
+        self._clear_authentication()
+        
+        # Act & Assert: Should be unauthorized
+        response = self._add_user_to_delivery_crew("nonexistentuser")
+        self._verify_unauthorized_response(response)
         
     # === Remove Users from the Delivery Crew Group Tests ===
 
     def test_manager_removes_user_from_delivery_crew_group(self):
-        # Add user2 to delivery crew group first
-        response = self.client.post(DELIVERY_CREW, {"username": self.user2.username}, format = "json")
-        # Now delete using the id-based URL
-        user_id = self.user2.id
-        response = self.client.delete(f"{DELIVERY_CREW}{user_id}/")
-        self.assertEqual(response.status_code, 204) # type: ignore
-        self.assertFalse(self.user2.groups.filter(name = "Delivery Crew").exists())
+        # Arrange: Add user2 to delivery crew group first
+        self._add_user_to_delivery_crew(self.user2.username)
+        
+        # Act & Assert: Remove user and verify
+        response = self._remove_user_from_delivery_crew(self.user2.id)
+        self.assertEqual(response.status_code, 204)
+        self._verify_user_in_delivery_crew_group(self.user2, should_be_in_group=False)
 
     def test_manager_cannot_remove_missing_user_from_delivery_crew_group(self):
-        # Create a user not in the delivery crew group
-        missing_user = User.objects.create_user(username = "missinguser", password = self.password)
-        # Now delete using the id-based URL
-        user_id = missing_user.id
-        response = self.client.delete(f"{DELIVERY_CREW}{user_id}/")
-        self.assertEqual(response.status_code, 404) # Should return 404 Not Found since user is not in the group # type: ignore
-        self.assertFalse(missing_user.groups.filter(name = "Delivery Crew").exists())
+        # Arrange: Create a user not in the delivery crew group
+        missing_user = User.objects.create_user(username="missinguser", password=self.password)
+        
+        # Act & Assert: Should return 404 Not Found since user is not in the group
+        response = self._remove_user_from_delivery_crew(missing_user.id)
+        self._verify_not_found_response(response)
+        self._verify_user_in_delivery_crew_group(missing_user, should_be_in_group=False)
         
     def test_unauthorized_user_cannot_remove_user_from_delivery_crew_group(self):
         # Ensure user2 is in the delivery crew group

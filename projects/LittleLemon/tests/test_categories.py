@@ -17,108 +17,118 @@ class CategoriesTests(BaseAPITestCase):
         token = self.get_auth_token()
         self.authenticate_client(token)
 
-    # === View List Tests ===
-    def test_authenticated_user_can_view_categories(self):
-        # AAA: Arrange-Act-Assert
-
-        # Act
+    # === Helper Methods ===
+    
+    def _get_categories(self):
+        """Helper method to get categories list"""
         response = self.client.get(CATEGORIES)
-
-        # Assert: Status and contents
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        categories = response.json()  # type: ignore
-        titles = [c["title"] for c in categories]  # type: ignore
-        for c in Category.objects.all():
-            self.assertIn(c.title, titles)
-
-    def test_anon_user_cannot_view_categories(self):
-        # AAA
-
-        # Arrange
-        self.client.credentials()
-
-        # Act
-        response = self.client.get(CATEGORIES)
-
-        # Assert
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type: ignore
-
-    # === Detail Tests ===
-    def test_authenticated_user_can_view_category_detail(self):
-        # AAA
-
-        # Arrange
-        category = get_object_or_404(Category, id=self.category_pizza.id)
-        url = f"{CATEGORIES}{category.id}/"  # type: ignore
-
-        # Act
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response.json()
+    
+    def _get_category_detail(self, category_id):
+        """Helper method to get category detail"""
+        url = f"{CATEGORIES}{category_id}/"
         response = self.client.get(url)
-
-        # Assert
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        data = response.json()  # type: ignore
-        self.assertEqual(data["title"], category.title)  # type: ignore
-
-    def test_anon_user_cannot_view_category_detail(self):
-        # AAA
-
-        # Arrange
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response.json()
+    
+    def _create_category(self, data):
+        """Helper method to create category"""
+        response = self.client.post(CATEGORIES, data, format="json")
+        return response
+    
+    def _verify_category_created(self, response, expected_title):
+        """Helper method to verify category was created"""
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(Category.objects.filter(title=expected_title).exists())
+    
+    def _verify_unauthorized_response(self, response):
+        """Helper method to verify unauthorized response"""
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def _verify_forbidden_response(self, response):
+        """Helper method to verify forbidden response"""
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def _clear_authentication(self):
+        """Helper method to clear client authentication"""
         self.client.credentials()
-        category = get_object_or_404(Category, id=self.category_pizza.id)
-        url = f"{CATEGORIES}{category.id}/"  # type: ignore
-
-        # Act
-        response = self.client.get(url)
-
-        # Assert
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type: ignore
-
-    # === Create / POST Tests ===
-    def test_admin_user_can_create_category(self):
-        # AAA
-
-        # Arrange
+    
+    def _make_user_staff(self):
+        """Helper method to make user staff"""
         self.give_user_staff_status(self.user1)
         token = self.get_auth_token()
         self.authenticate_client(token)
+    
+    def _verify_categories_contain_all_expected(self, categories):
+        """Helper method to verify categories contain all expected items"""
+        titles = [c["title"] for c in categories]
+        for category in Category.objects.all():
+            self.assertIn(category.title, titles)
+
+    # === View List Tests ===
+    def test_authenticated_user_can_view_categories(self):
+        # Act & Assert: Get categories and verify contents
+        categories = self._get_categories()
+        self._verify_categories_contain_all_expected(categories)
+
+    def test_anon_user_cannot_view_categories(self):
+        # Arrange: Clear authentication
+        self._clear_authentication()
+
+        # Act & Assert: Should be unauthorized
+        response = self.client.get(CATEGORIES)
+        self._verify_unauthorized_response(response)
+
+    # === Detail Tests ===
+    def test_authenticated_user_can_view_category_detail(self):
+        # Arrange: Get category
+        category = get_object_or_404(Category, id=self.category_pizza.id)
+
+        # Act & Assert: Get category detail and verify
+        data = self._get_category_detail(category.id)
+        self.assertEqual(data["title"], category.title)
+
+    def test_anon_user_cannot_view_category_detail(self):
+        # Arrange: Clear authentication and get category
+        self._clear_authentication()
+        category = get_object_or_404(Category, id=self.category_pizza.id)
+
+        # Act & Assert: Should be unauthorized
+        response = self.client.get(f"{CATEGORIES}{category.id}/")
+        self._verify_unauthorized_response(response)
+
+    # === Create / POST Tests ===
+    def test_admin_user_can_create_category(self):
+        # Arrange: Make user staff and prepare data
+        self._make_user_staff()
         data = {"slug": "salads", "title": "Salads"}
 
-        # Act
-        response = self.client.post(CATEGORIES, data, format="json")
-
-        # Assert
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)  # type: ignore
-        self.assertTrue(Category.objects.filter(title="Salads").exists())  # type: ignore
+        # Act & Assert: Create category and verify
+        response = self._create_category(data)
+        self._verify_category_created(response, "Salads")
 
     def test_non_staff_user_cannot_create_category(self):
-        # AAA
-
-        # Arrange
+        # Arrange: Ensure user is not staff and prepare data
         self.user1.is_staff = False
         self.user1.save()
         token = self.get_auth_token()
         self.authenticate_client(token)
         data = {"slug": "soups", "title": "Soups"}
 
-        # Act
-        response = self.client.post(CATEGORIES, data, format="json")
-
-        # Assert
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)  # type: ignore
-        self.assertFalse(Category.objects.filter(title="Soups").exists())  # type: ignore
+        # Act & Assert: Should be forbidden
+        response = self._create_category(data)
+        self._verify_forbidden_response(response)
+        self.assertFalse(Category.objects.filter(title="Soups").exists())
 
     def test_anon_user_cannot_create_category(self):
-        # AAA
-
-        # Arrange
-        self.client.credentials()
+        # Arrange: Clear authentication and prepare data
+        self._clear_authentication()
         data = {"slug": "drinks", "title": "Drinks"}
 
-        # Act
-        response = self.client.post(CATEGORIES, data, format="json")
-
-        # Assert
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)  # type: ignore
+        # Act & Assert: Should be unauthorized
+        response = self._create_category(data)
+        self._verify_unauthorized_response(response)
         self.assertFalse(Category.objects.filter(title="Drinks").exists())  # type: ignore
 
     # === Update / PATCH Tests ===

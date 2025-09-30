@@ -9,41 +9,72 @@ class AuthTests(BaseAPITestCase):
         super().setUp()
         # Ensure default user exists
         self.user = self.user1
+
+    # === Helper Methods ===
+    
+    def _login_with_credentials(self, username, password):
+        """Helper method to attempt login with given credentials"""
+        credentials = {"username": username, "password": password}
+        return self.client.post(LOGIN, credentials, format="json")
+    
+    def _verify_successful_login(self, response):
+        """Helper method to verify successful login response"""
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        token = response.json().get("auth_token")
+        self.assertIsNotNone(token)
+        return token
+    
+    def _verify_failed_login(self, response):
+        """Helper method to verify failed login response"""
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn("auth_token", response.json())
+    
+    def _verify_token_validity(self, token):
+        """Helper method to verify token exists for user"""
+        self.assertTrue(self.user.auth_token.key == token)
+    
+    def _test_multiple_login_attempts(self, credentials, expected_success_count):
+        """Helper method to test multiple login attempts"""
+        successful_logins = 0
+        for i in range(expected_success_count):
+            response = self._login_with_credentials(credentials["username"], credentials["password"])
+            if response.status_code == status.HTTP_200_OK:
+                successful_logins += 1
+        return successful_logins
+    
+    def _test_invalid_credentials_list(self, invalid_credentials_list):
+        """Helper method to test list of invalid credentials"""
+        for credentials in invalid_credentials_list:
+            with self.subTest(credentials=credentials):
+                response = self._login_with_credentials(credentials["username"], credentials["password"])
+                self._verify_failed_login(response)
+    
+    def _test_authenticated_api_calls(self, token, endpoint, expected_count):
+        """Helper method to test authenticated API calls"""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        successful_requests = 0
+        for i in range(expected_count):
+            response = self.client.get(endpoint)
+            if response.status_code == status.HTTP_200_OK:
+                successful_requests += 1
+        return successful_requests
         
     # === Login Tests ===
     
     def test_login_success(self):
-        # Arrange: Credentials
-        credentials = {
-            "username": self.user.username,
-            "password": self.password
-        }
-        
         # Act
-        response = self.client.post(LOGIN, credentials, format = "json")
+        response = self._login_with_credentials(self.user.username, self.password)
         
         # Assert
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type: ignore
-        token = response.json().get("auth_token")   # type: ignore
-        self.assertIsNotNone(token)
-        
-        # Database-level check: ensure the token exists for the user
-        self.assertTrue(self.user.auth_token.key == token)  # type: ignore
+        token = self._verify_successful_login(response)
+        self._verify_token_validity(token)
         
     def test_login_failure_wrong_credentials(self):
-        
-        # Arrange
-        credentials = {
-            "username": "wrong",
-            "password": "wrong"
-        }
-        
         # Act
-        response = self.client.post(LOGIN, {"username": "wrong", "password": "wrong"},format="json")
+        response = self._login_with_credentials("wrong", "wrong")
         
         # Assert
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST) # type: ignore
-        self.assertNotIn("auth_token", response.json()) # type: ignore
+        self._verify_failed_login(response)
 
     # === Performance & Scalability Tests ===
     
@@ -55,14 +86,8 @@ class AuthTests(BaseAPITestCase):
             "password": self.password
         }
         
-        # Act: Perform multiple rapid login requests
-        successful_logins = 0
-        for i in range(10):
-            response = self.client.post(LOGIN, credentials, format="json")
-            if response.status_code == status.HTTP_200_OK:
-                successful_logins += 1
-        
-        # Assert: All login attempts should succeed
+        # Act & Assert: All login attempts should succeed
+        successful_logins = self._test_multiple_login_attempts(credentials, 10)
         self.assertEqual(successful_logins, 10)
 
     def test_authentication_invalid_credential_patterns(self):
@@ -77,37 +102,17 @@ class AuthTests(BaseAPITestCase):
         ]
         
         # Act & Assert: All should return 400 Bad Request
-        for credentials in invalid_credentials:
-            with self.subTest(credentials=credentials):
-                response = self.client.post(LOGIN, credentials, format="json")
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-                self.assertNotIn("auth_token", response.json())
+        self._test_invalid_credentials_list(invalid_credentials)
 
     def test_authentication_token_reuse_validation(self):
         """Test that authentication tokens work correctly for repeated API calls."""
         # Arrange: Login and get token
-        credentials = {
-            "username": self.user.username,
-            "password": self.password
-        }
+        login_response = self._login_with_credentials(self.user.username, self.password)
+        token = self._verify_successful_login(login_response)
         
-        login_response = self.client.post(LOGIN, credentials, format="json")
-        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
-        
-        token = login_response.json().get("auth_token")
-        self.assertIsNotNone(token)
-        
-        # Act: Use token for multiple API calls (using categories as test endpoint)
+        # Act & Assert: Use token for multiple API calls
         from endpoints import CATEGORIES
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
-        
-        successful_requests = 0
-        for i in range(10):
-            response = self.client.get(CATEGORIES)
-            if response.status_code == status.HTTP_200_OK:
-                successful_requests += 1
-        
-        # Assert: All authenticated requests should succeed
+        successful_requests = self._test_authenticated_api_calls(token, CATEGORIES, 10)
         self.assertEqual(successful_requests, 10)
 
     def test_authentication_malformed_requests(self):
@@ -138,15 +143,10 @@ class AuthTests(BaseAPITestCase):
         
         for username in username_variations:
             with self.subTest(username=username):
-                credentials = {
-                    "username": username,
-                    "password": self.password
-                }
-                
-                response = self.client.post(LOGIN, credentials, format="json")
+                response = self._login_with_credentials(username, self.password)
                 
                 # Django usernames are case-sensitive by default
                 if username == self.user.username:
-                    self.assertEqual(response.status_code, status.HTTP_200_OK)
+                    self._verify_successful_login(response)
                 else:
-                    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                    self._verify_failed_login(response)

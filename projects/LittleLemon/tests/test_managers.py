@@ -18,82 +18,152 @@ class ManagerGroupTests(BaseAPITestCase):
         # Authenticate client with testuser1 token
         token = self.get_auth_token()
         self.authenticate_client(token)
+
+    # === Helper Methods ===
+    
+    def _get_users(self):
+        """Helper method to get all users"""
+        response = self.client.get(USERS)
+        self.assertEqual(response.status_code, 200)
+        return response.data
+    
+    def _get_managers(self):
+        """Helper method to get all managers"""
+        response = self.client.get(MANAGERS)
+        self.assertEqual(response.status_code, 200)
+        return response.data
+    
+    def _add_user_to_managers(self, username):
+        """Helper method to add user to managers group"""
+        response = self.client.post(MANAGERS, {"username": username}, format="json")
+        return response
+    
+    def _remove_user_from_managers(self, user_id):
+        """Helper method to remove user from managers group"""
+        response = self.client.delete(f"{MANAGERS}{user_id}/")
+        return response
+    
+    def _verify_user_in_manager_group(self, user, should_be_in_group=True):
+        """Helper method to verify user is/isn't in manager group"""
+        in_group = user.groups.filter(name="Manager").exists()
+        if should_be_in_group:
+            self.assertTrue(in_group)
+        else:
+            self.assertFalse(in_group)
+    
+    def _verify_unauthorized_response(self, response):
+        """Helper method to verify unauthorized response"""
+        self.assertEqual(response.status_code, 401)
+    
+    def _verify_forbidden_response(self, response):
+        """Helper method to verify forbidden response"""
+        self.assertEqual(response.status_code, 403)
+    
+    def _verify_method_not_allowed_response(self, response):
+        """Helper method to verify method not allowed response"""
+        self.assertEqual(response.status_code, 405)
+    
+    def _create_and_authenticate_non_manager(self, username="notmanager"):
+        """Helper method to create and authenticate non-manager user"""
+        user = User.objects.create_user(username=username, password=self.password)
+        token = self.get_auth_token(username=username, password=self.password)
+        self.authenticate_client(token)
+        return user
+    
+    def _clear_authentication(self):
+        """Helper method to clear client authentication"""
+        self.client.logout()
+    
+    def _verify_all_users_returned(self, response_data):
+        """Helper method to verify all users are returned"""
+        all_usernames = [user.username for user in User.objects.all()]
+        response_usernames = [user["username"] for user in response_data]
+        for username in all_usernames:
+            self.assertIn(username, response_usernames)
+    
+    def _verify_managers_returned(self, response_data):
+        """Helper method to verify all managers are returned"""
+        manager_group = Group.objects.get(name="Manager")
+        manager_usernames = [user.username for user in manager_group.user_set.all()]
+        response_usernames = [user["username"] for user in response_data]
+        for username in manager_usernames:
+            self.assertIn(username, response_usernames)
     
     # === View All Users Tests ===
     
     def test_manager_views_all_users(self):
-        response = self.client.get(USERS)
-        self.assertEqual(response.status_code, 200) # type: ignore
-        # Response should be a list of all users
-        all_usernames = [user.username for user in User.objects.all()]
-        response_usernames = [user["username"] for user in response.data] # type: ignore
-        for username in all_usernames:
-            self.assertIn(username, response_usernames)
+        # Act & Assert: Get all users and verify all are returned
+        response_data = self._get_users()
+        self._verify_all_users_returned(response_data)
             
     def test_unauthorized_user_cannot_view_all_users(self):
-        # Create a user who is not in the manager group
-        user_non_manager = User.objects.create_user(username="notmanager", password=self.password)
-        token = self.get_auth_token(username="notmanager", password=self.password)
-        self.authenticate_client(token)
+        # Arrange: Create and authenticate non-manager user
+        self._create_and_authenticate_non_manager()
+        
+        # Act & Assert: Should be forbidden
         response = self.client.get(USERS)
-        self.assertEqual(response.status_code, 403) # Forbidden for non-managers # type: ignore
+        self._verify_forbidden_response(response)
 
     def test_anonymous_user_cannot_view_all_users(self):
-        # Unauthenticate the client
-        self.client.logout()
+        # Arrange: Clear authentication
+        self._clear_authentication()
+        
+        # Act & Assert: Should be unauthorized
         response = self.client.get(USERS)
-        self.assertEqual(response.status_code, 401) # Unauthorized for anonymous users # type: ignore
+        self._verify_unauthorized_response(response)
         
     # === View All Users in the Manager Group Tests ===
         
     def test_manager_views_all_users_in_manager_group(self):
-        response = self.client.get(MANAGERS)
-        self.assertEqual(response.status_code, 200) # type: ignore
-        # Check that all users in the Manager group are returned
-        manager_group = Group.objects.get(name = "Manager")
-        manager_usernames = [user.username for user in manager_group.user_set.all()]    # type: ignore
-        response_usernames = [user["username"] for user in response.data] # type: ignore
-        for username in manager_usernames:
-            self.assertIn(username, response_usernames)
+        # Act & Assert: Get managers and verify all are returned
+        response_data = self._get_managers()
+        self._verify_managers_returned(response_data)
             
     def test_unauthorized_authenticated_user_cannot_view_all_users_in_manager_group(self):
-        # Create a user who is not in the manager group
-        user_non_manager = User.objects.create_user(username="notmanager", password=self.password)
-        token = self.get_auth_token(username="notmanager", password=self.password)
-        self.authenticate_client(token)
+        # Arrange: Create and authenticate non-manager user
+        self._create_and_authenticate_non_manager()
+        
+        # Act & Assert: Should be forbidden
         response = self.client.get(MANAGERS)
-        self.assertEqual(response.status_code, 403) # Forbidden for non-managers # type: ignore
+        self._verify_forbidden_response(response)
 
     def test_anonymous_user_cannot_view_all_users_in_manager_group(self):
-        self.client.credentials() # remove authentication
+        # Arrange: Clear authentication
+        self._clear_authentication()
+        
+        # Act & Assert: Should be unauthorized
         response = self.client.get(MANAGERS)
-        self.assertEqual(response.status_code, 401) # Unauthorized for anonymous users # type: ignore
+        self._verify_unauthorized_response(response)
         
     # === Add Users to the Manager Group Tests ===
         
     def test_manager_adds_user_to_manager_group(self):
-        response = self.client.post(MANAGERS, {"username": self.user2.username}, format = "json")
-        self.assertEqual(response.status_code, 201) # type: ignore
-        self.assertTrue(self.user2.groups.filter(name = "Manager").exists())
+        # Act & Assert: Add user to managers and verify
+        response = self._add_user_to_managers(self.user2.username)
+        self.assertEqual(response.status_code, 201)
+        self._verify_user_in_manager_group(self.user2, should_be_in_group=True)
         
     def test_unsupported_http_methods_to_managers_endpoint_return_405(self):
-        response = self.client.put(MANAGERS, {"username": self.user2.username}, format = "json")
-        self.assertEqual(response.status_code, 405) # type: ignore
+        # Act & Assert: Unsupported method should return 405
+        response = self.client.put(MANAGERS, {"username": self.user2.username}, format="json")
+        self._verify_method_not_allowed_response(response)
         
     def test_unauthorized_user_cannot_add_user_to_manager_group(self):
-        # Create and authenticate a non-manager user
-        User.objects.create_user(username="unauthorized", password=self.password)
-        token = self.get_auth_token(username="unauthorized", password=self.password)
-        self.authenticate_client(token)
-        response = self.client.post(MANAGERS, {"username": self.user3.username}, format="json")
-        self.assertEqual(response.status_code, 403) # Forbidden for non-managers # type: ignore
-        self.assertFalse(self.user3.groups.filter(name="Manager").exists())
+        # Arrange: Create and authenticate non-manager user
+        self._create_and_authenticate_non_manager("unauthorized")
+        
+        # Act & Assert: Should be forbidden
+        response = self._add_user_to_managers(self.user3.username)
+        self._verify_forbidden_response(response)
+        self._verify_user_in_manager_group(self.user3, should_be_in_group=False)
 
     def test_anonymous_user_cannot_add_user_to_manager_group(self):
-        # Unauthenticate the client
-        self.client.logout()
-        response = self.client.post(MANAGERS, {"username": "nonexistentuser"}, format = "json")
-        self.assertEqual(response.status_code, 401) # Should return 401 Unauthenticated # type: ignore
+        # Arrange: Clear authentication
+        self._clear_authentication()
+        
+        # Act & Assert: Should be unauthorized
+        response = self._add_user_to_managers("nonexistentuser")
+        self._verify_unauthorized_response(response)
         
     # === Remove Users from the Manager Group Tests ===
 

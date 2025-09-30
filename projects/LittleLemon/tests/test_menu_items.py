@@ -22,46 +22,127 @@ class MenuItemsTests(BaseAPITestCase):
         token = self.get_auth_token()
         self.authenticate_client(token)
 
+    # === Helper Methods ===
+    
+    def _get_menu_items(self, params=None):
+        """Helper method to get menu items with optional query parameters"""
+        url = MENU_ITEMS
+        if params:
+            url += "?" + "&".join([f"{k}={v}" for k, v in params.items()])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response.json()
+    
+    def _get_menu_item_detail(self, item_id):
+        """Helper method to get menu item detail"""
+        url = f"{MENU_ITEMS}{item_id}/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response.json()
+    
+    def _create_menu_item(self, data):
+        """Helper method to create menu item"""
+        response = self.client.post(MENU_ITEMS, data, format="json")
+        return response
+    
+    def _update_menu_item(self, item_id, data):
+        """Helper method to update menu item"""
+        url = f"{MENU_ITEMS}{item_id}/"
+        response = self.client.patch(url, data, format="json")
+        return response
+    
+    def _delete_menu_item(self, item_id):
+        """Helper method to delete menu item"""
+        url = f"{MENU_ITEMS}{item_id}/"
+        response = self.client.delete(url)
+        return response
+    
+    def _verify_menu_item_created(self, response, expected_title):
+        """Helper method to verify menu item was created"""
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(MenuItem.objects.filter(title=expected_title).exists())
+    
+    def _verify_menu_item_updated(self, response, item_id, expected_data):
+        """Helper method to verify menu item was updated"""
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item = MenuItem.objects.get(id=item_id)
+        for key, value in expected_data.items():
+            self.assertEqual(getattr(item, key), value)
+    
+    def _verify_menu_item_deleted(self, response, item_id):
+        """Helper method to verify menu item was deleted"""
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(MenuItem.objects.filter(id=item_id).exists())
+    
+    def _verify_unauthorized_response(self, response):
+        """Helper method to verify unauthorized response"""
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def _verify_forbidden_response(self, response):
+        """Helper method to verify forbidden response"""
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def _clear_authentication(self):
+        """Helper method to clear client authentication"""
+        self.client.credentials()
+    
+    def _make_user_staff(self):
+        """Helper method to make user staff"""
+        self.give_user_staff_status(self.user1)
+        token = self.get_auth_token()
+        self.authenticate_client(token)
+    
+    def _verify_menu_items_contain_all_expected(self, response_data):
+        """Helper method to verify menu items contain all expected items"""
+        titles = [item["title"] for item in response_data['results']]
+        for menu_item in MenuItem.objects.all():
+            self.assertIn(menu_item.title, titles)
+    
+    def _verify_filtered_results(self, response_data, expected_items):
+        """Helper method to verify filtered results match expected items"""
+        response_titles = [item["title"] for item in response_data['results']]
+        expected_titles = [item.title for item in expected_items]
+        for title in expected_titles:
+            self.assertIn(title, response_titles)
+    
+    def _verify_ordered_prices(self, response_data, expected_order):
+        """Helper method to verify prices are in expected order"""
+        response_prices = [float(item["price"]) for item in response_data['results']]
+        expected_prices = [float(p) for p in expected_order]
+        self.assertEqual(response_prices, expected_prices)
+
     # === View List Tests ===
     def test_list_auth_user_can_view(self):
-        page_size = 100
-        url = f"{MENU_ITEMS}?page_size={page_size}"
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
-        titles = [item["title"] for item in response.json()['results']]    # type:ignore
-        for m in MenuItem.objects.all():
-            self.assertIn(m.title, titles)
+        # Act & Assert: Get menu items and verify all are present
+        response_data = self._get_menu_items({"page_size": 100})
+        self._verify_menu_items_contain_all_expected(response_data)
 
     def test_list_anon_user_cannot_view(self):
-        self.client.credentials()
+        # Arrange: Clear authentication
+        self._clear_authentication()
+        
+        # Act & Assert: Should be unauthorized
         response = self.client.get(MENU_ITEMS)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
+        self._verify_unauthorized_response(response)
         
     # === Filter List Tests ===
 
     def test_list_filter_by_category_exact_match(self):
-        url = f"{MENU_ITEMS}?category__title=Pizza"
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
-        response_titles = [item["title"] for item in response.json()['results']]   # type:ignore
-        pizza_items = [m.title for m in MenuItem.objects.filter(category__title="Pizza")]
-        for title in pizza_items:
-            self.assertIn(title, response_titles)
+        # Act & Assert: Filter by category and verify results
+        response_data = self._get_menu_items({"category__title": "Pizza"})
+        pizza_items = MenuItem.objects.filter(category__title="Pizza")
+        self._verify_filtered_results(response_data, pizza_items)
 
     def test_list_filter_by_category_partial_match(self):
-        url = f"{MENU_ITEMS}?category__title__icontains=Pizz"
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
-        response_titles = [item["title"] for item in response.json()['results']]   # type:ignore
-        pizza_items = [m.title for m in MenuItem.objects.filter(category__title="Pizza")]
-        for title in pizza_items:
-            self.assertIn(title, response_titles)
+        # Act & Assert: Filter by partial category match and verify results
+        response_data = self._get_menu_items({"category__title__icontains": "Pizz"})
+        pizza_items = MenuItem.objects.filter(category__title="Pizza")
+        self._verify_filtered_results(response_data, pizza_items)
 
     def test_list_filter_query_string_invalid_or_missing_category(self):
-        url = f"{MENU_ITEMS}?category__title=Sushi"
-        response = self.client.get(url)
+        # Act & Assert: Invalid category should return all items
+        response_data = self._get_menu_items({"category__title": "Sushi"})
         # If the query string is invalid or the category is missing, all menu items are returned
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
         
     # === Paginate List Tests === 
         
@@ -162,37 +243,39 @@ class MenuItemsTests(BaseAPITestCase):
     # === Detail Tests ===
     
     def test_detail_auth_user_can_view(self):
+        # Arrange: Get menu item
         item = MenuItem.objects.get(title="Margherita")
-        url = f"{MENU_ITEMS}{item.id}/" # type:ignore
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)  # type:ignore
-        self.assertEqual(response.json()["title"], item.title)  # type:ignore
-        self.assertEqual(response.json()["price"], str(item.price))  # type:ignore
-        self.assertEqual(response.json()["featured"], item.featured) # type:ignore
-        self.assertEqual(response.json()['category']['id'], item.category_id)    # type:ignore
+        
+        # Act & Assert: Get detail and verify properties
+        data = self._get_menu_item_detail(item.id)
+        self.assertEqual(data["title"], item.title)
+        self.assertEqual(data["price"], str(item.price))
+        self.assertEqual(data["featured"], item.featured)
+        self.assertEqual(data['category']['id'], item.category_id)
 
     def test_detail_anon_user_cannot_view(self):
+        # Arrange: Get item and clear authentication
         item = MenuItem.objects.get(title="Margherita")
-        self.client.credentials()
-        url = f"{MENU_ITEMS}{item.id}/" # type:ignore
-        response = self.client.get(url)
-        self.print_json(response)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)    # type:ignore
+        self._clear_authentication()
+        
+        # Act & Assert: Should be unauthorized
+        response = self.client.get(f"{MENU_ITEMS}{item.id}/")
+        self._verify_unauthorized_response(response)
 
     # === Create / POST Tests ===
     def test_auth_admin_user_can_add_menu_item(self):
-        self.give_user_staff_status(self.user1)
-        token = self.get_auth_token()
-        self.authenticate_client(token)
+        # Arrange: Make user staff and prepare data
+        self._make_user_staff()
         data = {
             "title": "Tiramisu",
             "price": 15.0,
             "featured": False,
-            "category_id": self.category_dessert.id # type:ignore
+            "category_id": self.category_dessert.id
         }
-        response = self.client.post(MENU_ITEMS, data, format="json")
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED) # type:ignore
-        self.assertTrue(MenuItem.objects.filter(title="Tiramisu").exists()) # type:ignore
+        
+        # Act & Assert: Create menu item and verify
+        response = self._create_menu_item(data)
+        self._verify_menu_item_created(response, "Tiramisu")
 
     def test_auth_non_staff_user_cannot_add_menu_item(self):
         self.user1.is_staff = False
