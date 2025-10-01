@@ -345,3 +345,89 @@ class OrderTests(BaseAPITestCase):
         order_item_db = OrderItem.objects.get(order=order)
         self.assertEqual(order_item_db.quantity, large_quantity)
         self.assertEqual(order_item_db.price, expected_total)
+
+    # === Order Retrieval Tests ===
+    
+    def test_retrieve_single_order_success(self):
+        """Test that authenticated user can retrieve their own order"""
+        # Arrange: Create an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        quantity = 2
+        expected_total = menu_item.price * quantity
+        
+        self._add_item_to_cart(menu_item, quantity)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response, expected_total)
+        order_id = order_data["id"]
+        
+        # Act: Retrieve the order
+        response = self.client.get(f"{ORDERS}{order_id}/")
+        
+        # Assert: Order is retrieved successfully
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], order_id)
+        
+        # Validate order fields using helper
+        self._validate_order_response_fields(response.data, self.user1)
+        self.assertEqual(float(response.data["total"]), float(expected_total))
+        
+        # Assert: Order items are included and valid
+        self.assertEqual(len(response.data["order_items"]), 1)
+        self._validate_order_item(response.data["order_items"][0], menu_item, quantity)
+    
+    def test_retrieve_order_user_isolation(self):
+        """Test that user cannot retrieve another user's order"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create and authenticate user2
+        user2_client = self._create_and_authenticate_user2()
+        
+        # Act: User2 tries to retrieve user1's order
+        response = user2_client.get(f"{ORDERS}{order_id}/")
+        
+        # Assert: Should return 404 (not found) to prevent information disclosure
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_retrieve_order_invalid_id_format(self):
+        """Test that invalid order ID format returns 400 Bad Request"""
+        # Act: Try to retrieve order with invalid ID format
+        response = self.client.get(f"{ORDERS}abc/")
+        
+        # Assert: Should return 400 Bad Request
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detail", response.data)
+        self.assertIn("Invalid order ID format", response.data["detail"])
+    
+    def test_retrieve_order_nonexistent_id(self):
+        """Test that retrieving non-existent order returns 404"""
+        # Arrange: Use an ID that doesn't exist
+        nonexistent_id = 99999
+        
+        # Act: Try to retrieve non-existent order
+        response = self.client.get(f"{ORDERS}{nonexistent_id}/")
+        
+        # Assert: Should return 404 Not Found
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_retrieve_order_unauthenticated_user(self):
+        """Test that unauthenticated user cannot retrieve orders"""
+        # Arrange: Create an order as authenticated user
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Clear authentication
+        self._clear_authentication()
+        
+        # Act: Try to retrieve order as unauthenticated user
+        response = self.client.get(f"{ORDERS}{order_id}/")
+        
+        # Assert: Should return 401 Unauthorized
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
