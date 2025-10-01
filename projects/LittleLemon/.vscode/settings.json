@@ -1,7 +1,10 @@
 {
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
     "python.testing.pytestArgs": [
         "tests"
     ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.defaultInterpreterPath": "C:\\Users\\sarah\\.virtualenvs\\LittleLemon-7GAixb0S\\Scripts\\python.exe",
+    "python.testing.cwd": "${workspaceFolder}",
+    "python.testing.autoTestDiscoverOnSaveEnabled": true
 }
