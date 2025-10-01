@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.models import User
+from django.utils import timezone
 from .models import Cart, Category, MenuItem, Order, OrderItem
 import bleach
 from decimal import Decimal, InvalidOperation
@@ -151,8 +152,12 @@ class OrderSerializer(serializers.ModelSerializer):
     
     def get_date_formatted(self, obj):
         """Return date in readable format: 'September 30, 2025'"""
-        return obj.date.strftime('%B %d, %Y')
+        # Convert UTC datetime to the active timezone (from settings.TIME_ZONE)
+        local_date = timezone.localtime(obj.date)
+        return local_date.strftime('%B %d, %Y')
     
     def get_time_formatted(self, obj):
         """Return time in readable format: '2:31 PM'"""
-        return obj.date.strftime('%I:%M %p')
+        # Convert UTC datetime to the active timezone (from settings.TIME_ZONE)
+        local_date = timezone.localtime(obj.date)
+        return local_date.strftime('%I:%M %p')
