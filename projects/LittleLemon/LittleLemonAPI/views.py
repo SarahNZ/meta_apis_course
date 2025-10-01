@@ -390,14 +390,15 @@ class CartViewSet(viewsets.ViewSet):
 class OrderViewSet(viewsets.ViewSet):
     """
     Viewset for managing user's orders.
-    
+
     Customers can view their orders: GET /api/orders/
+    Customers can view a single order: GET /api/orders/{orderId}/
     Customers can place an order: POST /api/orders/ (include info in body)
     Customers can't modify their order. I.e. Update or delete it (out of scope)
     """
-    
+
     permission_classes = [IsAuthenticated]
-    
+
     def list(self, request):
         """
         List all orders for the authenticated user
@@ -405,7 +406,24 @@ class OrderViewSet(viewsets.ViewSet):
         queryset = Order.objects.filter(user = request.user)
         serializer = OrderSerializer(queryset, many = True)
         return Response(serializer.data)
-    
+
+    def retrieve(self, request, pk=None):
+        """
+        Retrieve a single order for the authenticated user
+        GET /api/orders/{orderId}/
+        """
+        try:
+            order = get_object_or_404(Order, user=request.user, pk=pk)
+            logger.info(f"User '{request.user.username}' viewed order {order.id}")
+            serializer = OrderSerializer(order)
+            return Response(serializer.data)
+        except ValueError:
+            logger.warning(f"User '{request.user.username}' attempted to retrieve order with invalid ID format: {pk}")
+            return Response(
+                {"detail": "Invalid order ID format"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
     def create(self, request):
         """
         Create a new order from the user's cart items
