@@ -1,13 +1,35 @@
 # LittleLemon Restaurant API
 
-A Django REST Framework API for managing Little Lemon restaurant operations.
+A Django REST Framework API for managing Little Lemon restaurant operations. This is a student project demonstrating REST API design, authentication, permissions, and comprehensive testing.
 
 ## Project Structure
-- **LittleLemonAPI/** - Main API app (models, views, serializers, permissions)
-- **tests/** - Pytest test suite with comprehensive coverage
-- **LittleLemon/** - Django project settings and configuration
-- **Database:** SQLite (db.sqlite3)
-- **Dependency Management:** Pipenv
+```
+LittleLemon/
+├── LittleLemonAPI/          # Main API application
+│   ├── models.py            # Data models (Category, MenuItem, Cart, Order, OrderItem)
+│   ├── serializers.py       # DRF serializers with validation logic
+│   ├── views.py             # ViewSets for all endpoints
+│   ├── permissions.py       # Custom permission: IsStaffOrReadOnly
+│   ├── filters.py           # MenuItemFilter for category filtering
+│   ├── pagination.py        # CustomPageNumberPagination (default: 2 items/page)
+│   └── urls.py              # API URL routing via DefaultRouter
+├── LittleLemon/             # Django project configuration
+│   └── settings.py          # Project settings (includes DRF, Djoser, django-filters)
+├── tests/                   # Comprehensive pytest test suite
+│   ├── base_test.py         # BaseAPITestCase with helper methods
+│   ├── endpoints.py         # API endpoint constants for tests
+│   ├── test_auth.py         # Authentication tests
+│   ├── test_permissions.py  # Permission tests
+│   ├── test_menu_items.py   # Menu item CRUD, filtering, search, pagination tests
+│   ├── test_categories.py   # Category tests (including delete prevention)
+│   ├── test_cart.py         # Cart management tests (60KB - extensive coverage)
+│   ├── test_orders.py       # Order creation and listing tests
+│   ├── test_managers.py     # Manager group management tests
+│   └── test_delivery_crew.py # Delivery crew group management tests
+├── db.sqlite3               # SQLite database
+├── Pipfile                  # Pipenv dependencies (Python 3.13)
+└── manage.py                # Django management script
+```
 
 ## Quick Start Commands
 
@@ -18,11 +40,10 @@ pipenv run python manage.py runserver
 
 ### Run Tests
 ```bash
-pipenv run pytest
-```
-Run with verbose output:
-```bash
-pipenv run pytest -v
+pipenv run pytest                    # Run all tests
+pipenv run pytest -v                 # Verbose output
+pipenv run pytest tests/test_cart.py # Run specific test file
+pipenv run pytest -s --lf -v         # Re-run last failures with output
 ```
 
 ### Database Migrations
@@ -31,42 +52,283 @@ pipenv run python manage.py makemigrations
 pipenv run python manage.py migrate
 ```
 
+### Django Shell (for debugging)
+```bash
+pipenv run python manage.py shell
+```
+
+## Technology Stack
+- **Framework:** Django 5.x + Django REST Framework
+- **Authentication:** Djoser (token-based)
+- **Database:** SQLite
+- **Testing:** pytest + pytest-django
+- **Python:** 3.13
+- **Key Packages:** django-filter, bleach (XSS protection), concurrent-log-handler
+
+## Core Models
+
+### Category (LittleLemonAPI/models.py:13-31)
+- Fields: `slug`, `title`
+- Default categories: Appetizers, Desserts, Drinks, Mains, Sides
+- Includes bleach sanitization in clean() method
+- Ordering: by ID
+
+### MenuItem (LittleLemonAPI/models.py:32-46)
+- Fields: `title`, `price` (Decimal 6,2), `featured` (Boolean), `category` (ForeignKey to Category with PROTECT)
+- Includes title sanitization with bleach
+- Ordering: by ID
+
+### Cart (LittleLemonAPI/models.py:47-55)
+- Fields: `user`, `menuitem`, `quantity`, `unit_price`, `price`
+- Unique constraint: (menuitem, user) - prevents duplicate items per user
+- Price automatically calculated on creation/update
+
+### Order (LittleLemonAPI/models.py:57-62)
+- Fields: `user`, `delivery_crew` (nullable), `status` (SmallInt, default=0), `total`, `date` (auto_now_add)
+- Created from cart items
+- Related to OrderItem via order_items
+
+### OrderItem (LittleLemonAPI/models.py:64-72)
+- Fields: `order`, `menuitem`, `quantity`, `unit_price`, `price`
+- Unique constraint: (order, menuitem) - prevents duplicate items per order
+
+## ViewSets & Endpoints
+
+### MenuItemsViewSet (LittleLemonAPI/views.py:213-247)
+- **Base URL:** `/api/menu-items/`
+- **Permission:** IsStaffOrReadOnly (all authenticated users can read, only staff can write)
+- **Features:** Search by title, filter by category_title, ordering by price/title/category__title, pagination
+- **Logging:** Creates and deletes are logged
+
+### CategoriesViewSet (LittleLemonAPI/views.py:250-274)
+- **Base URL:** `/api/categories/`
+- **Permission:** IsStaffOrReadOnly
+- **Features:** Search by title, ordering by title
+- **Special:** DELETE operations are blocked (returns 403)
+
+### CartViewSet (LittleLemonAPI/views.py:277-387)
+- **Base URL:** `/api/cart/`
+- **Permission:** IsAuthenticated
+- **Methods:**
+  - GET: List user's cart items
+  - POST: Add item (auto-increments quantity if item already exists)
+  - DELETE: Remove specific item by ID
+  - DELETE `/api/cart/clear/`: Clear all cart items
+- **Validation:** Quantity must be >= 1, price overflow prevention
+- **Logging:** All cart operations logged
+
+### OrderViewSet (LittleLemonAPI/views.py:390-453)
+- **Base URL:** `/api/orders/`
+- **Permission:** IsAuthenticated
+- **Methods:**
+  - GET: List user's orders with order_items
+  - POST: Create order from cart (validates non-empty cart, creates order + order items, clears cart)
+- **Response:** Includes formatted date/time fields
+
+### ManagerViewSet (LittleLemonAPI/views.py:182-211)
+- **Base URL:** `/api/groups/manager/users/`
+- **Permission:** IsAdminUser
+- **Methods:**
+  - GET: List managers
+  - POST: Add user to Manager group (grants staff status)
+  - DELETE: Remove user from Manager group (revokes staff status)
+- **Uses:** UserGroupManagementMixin
+
+### DeliveryCrewViewSet (LittleLemonAPI/views.py:150-179)
+- **Base URL:** `/api/groups/delivery-crew/users/`
+- **Permission:** IsAdminUser
+- **Methods:**
+  - GET: List delivery crew
+  - POST: Add user to Delivery Crew group
+  - DELETE: Remove user from Delivery Crew group
+- **Uses:** UserGroupManagementMixin
+
+### UserViewSet (LittleLemonAPI/views.py:137-148)
+- **Base URL:** `/api/users/`
+- **Permission:** IsAdminUser
+- **Methods:** GET (read-only)
+- **Note:** User creation via Djoser at `/auth/users/`
+
+## Authentication & Authorization
+
+### Djoser Endpoints
+- **Create user:** POST `/auth/users/` (body: username, password, optional: email)
+- **Login:** POST `/auth/token/login/` (body: username, password) → returns auth_token
+- **Logout:** POST `/auth/token/logout/` (requires auth_token)
+
+### Using Token Authentication
+Include in request headers:
+```
+Authorization: Token <your-auth-token>
+```
+
+### User Groups
+- **Manager:** Staff status (is_staff=True), can create/delete menu items and categories
+- **Delivery Crew:** Can be assigned to orders
+- **Customer:** Default authenticated users
+
+### Custom Permission: IsStaffOrReadOnly (LittleLemonAPI/permissions.py:3-14)
+- Authenticated users: Can perform safe methods (GET, HEAD, OPTIONS)
+- Staff users: Can perform all methods (POST, PUT, PATCH, DELETE)
+
 ## API Features
 
-### Core Models
-- **Category** - Menu item categories (Appetizers, Desserts, Drinks, Mains, Sides)
-- **MenuItem** - Restaurant menu items with pricing and categorization
-- **Cart** - User shopping cart for ordering
-- **Order** - Customer orders with order items
-- **OrderItem** - Individual items within an order
+### Filtering
+- **Menu Items:** Filter by `category_title` (exact match)
+  - Example: `/api/menu-items/?category_title=Desserts`
 
-### User Groups & Roles
-- **Manager** - Full access, gets staff status
-- **Delivery Crew** - Can be assigned to orders
-- **Customer** - Regular authenticated users
+### Searching
+- **Menu Items:** Search by `title` (partial match)
+  - Example: `/api/menu-items/?search=pasta`
+- **Categories:** Search by `title`
 
-### Authentication
-- **Type:** Token-based authentication (via Djoser)
-- **Create user:** POST `/auth/users/` (username, password)
-- **Get token:** POST `/auth/token/login/` (username, password)
-- **Use token:** Include header `Authorization: Token <your-token>`
+### Ordering/Sorting
+- **Menu Items:** Order by `price`, `title`, or `category__title`
+  - Example: `/api/menu-items/?ordering=price&ordering=category__title`
+- **Categories:** Order by `title`
 
-### Key API Endpoints
-- `/api/menu-items/` - Browse/search menu (staff can add/remove)
-- `/api/categories/` - View categories (staff can add, deletion disabled)
-- `/api/cart/` - Manage shopping cart
-- `/api/orders/` - View/create orders
-- `/api/groups/manager/users/` - Manage manager group (admin only)
-- `/api/groups/delivery-crew/users/` - Manage delivery crew (admin only)
-- `/api/users/` - View all users (admin only)
+### Pagination (LittleLemonAPI/pagination.py)
+- **Default page size:** 2 items
+- **Custom page size:** `/api/menu-items/?page_size=10`
+- **Max page size:** 100 items
+- **Navigation:** Response includes `next` and `previous` URLs
 
-### API Features
-- Filtering (by category, etc.)
-- Searching (menu items by title)
-- Ordering/Sorting (by price, title, category)
-- Pagination (customizable page size)
+## Testing Strategy
 
-## Testing
-- **Framework:** pytest with pytest-django
-- **Test Coverage:** Authentication, permissions, menu items, categories, cart, orders, managers, delivery crew
-- **Helper Methods:** Extensive use of helper methods for test readability
+### Test Framework: pytest + pytest-django
+- **Location:** `tests/` directory
+- **Base Class:** BaseAPITestCase (tests/base_test.py:36-107)
+- **Test Database:** Separate test database, reset for each test class
+- **Transaction Isolation:** Each test method runs in its own transaction
+
+### BaseAPITestCase Helper Methods
+- `get_auth_token(username, password)` - Get Djoser auth token
+- `authenticate_client(token)` - Set Authorization header
+- `add_user_to_manager_group(user)` - Add user to Manager group + staff status
+- `add_user_to_delivery_crew_group(user)` - Add user to Delivery Crew group
+- `give_user_staff_status(user)` - Grant staff status
+- `print_json(response)` - Pretty-print JSON responses (DEBUG_JSON flag)
+
+### Test Coverage
+1. **test_auth.py** - User creation, login, token validation
+2. **test_permissions.py** - IsStaffOrReadOnly permission logic
+3. **test_menu_items.py** - CRUD, filtering, search, ordering, pagination, staff-only operations
+4. **test_categories.py** - CRUD, delete prevention, staff-only operations
+5. **test_cart.py** (60KB) - Add to cart, quantity updates, duplicate prevention, validation, overflow checks, clearing cart
+6. **test_orders.py** - Order creation from cart, empty cart validation, order item creation
+7. **test_managers.py** - Add/remove managers, staff status management, admin-only access
+8. **test_delivery_crew.py** - Add/remove delivery crew, admin-only access
+
+### Running Tests
+```bash
+# All tests
+pipenv run pytest -v
+
+# Specific test file
+pipenv run pytest tests/test_cart.py -v
+
+# Specific test method
+pipenv run pytest tests/test_cart.py::CartAPITestCase::test_add_to_cart -v
+
+# Re-run last failures
+pipenv run pytest --lf -v
+
+# Show print() output
+pipenv run pytest -s tests/test_cart.py -v
+
+# Short tracebacks + stop on first failure
+pipenv run pytest -v --tb=short --maxfail=1
+```
+
+## Data Validation & Security
+
+### Input Sanitization
+- **Bleach:** Used in Category and MenuItem models to prevent XSS attacks
+- **Validation:** Price cannot be negative, quantity must be >= 1
+- **Overflow Protection:** Cart serializer validates quantity × unit_price <= 9999.99
+
+### Model Validation
+- **Category:** Calls full_clean() in save() to trigger model-level validation
+- **Unique Constraints:** Cart (menuitem, user), OrderItem (order, menuitem)
+- **ForeignKey Protection:** Category uses PROTECT to prevent deletion when related to MenuItems
+
+### Serializer Validation
+- **UniqueValidator:** Enforced on Category.title, Category.slug, MenuItem.title
+- **Custom Validators:** Price validation, quantity validation, slug format validation
+- **Cross-field Validation:** Cart serializer validates price calculations
+
+## Logging
+
+### Configuration
+- **Logger:** 'LittleLemonAPI' (configured in settings.py)
+- **Handler:** concurrent-log-handler for rotation
+- **Location:** Logs stored in project directory
+
+### Logged Events
+- Menu item creation/deletion (views.py:240, 247)
+- Cart operations: view, add, update, remove, clear (views.py:296, 315, 340, 361, 385)
+- Order creation (views.py:426, 449)
+- Manager/Delivery Crew group changes (views.py:66, 94, 128)
+- Validation failures and errors
+
+## Key Implementation Details
+
+### UserGroupManagementMixin (LittleLemonAPI/views.py:17-134)
+- **Purpose:** Shared functionality for managing Manager and Delivery Crew groups
+- **Attributes:** `group_name`, `updates_staff_status`
+- **Methods:** `get_group()`, `validate_user_id()`, `validate_username()`, `list_group_users()`, `add_user_to_group()`, `remove_user_from_group()`
+- **Logging:** Comprehensive logging for all group operations
+
+### Cart Logic (LittleLemonAPI/views.py:301-348)
+- **Add to cart:** If item exists, increment quantity; otherwise create new cart item
+- **Price calculation:** unit_price × quantity stored in price field
+- **Serializer validation:** Handles overflow prevention and data integrity
+
+### Order Creation (LittleLemonAPI/views.py:409-453)
+- **Process:**
+  1. Validate cart is not empty
+  2. Calculate total from cart items
+  3. Create Order record
+  4. Create OrderItem records from cart items
+  5. Clear cart
+- **Atomicity:** All steps in single request (consider adding transaction.atomic)
+
+## Development Notes
+
+### Database Schema
+- Five models: Category, MenuItem, Cart, Order, OrderItem
+- ForeignKey relationships with appropriate on_delete behaviors
+- Unique constraints to prevent data duplication
+
+### URL Routing
+- DefaultRouter automatically generates standard REST endpoints
+- Custom action: CartViewSet.clear (DELETE /api/cart/clear/)
+
+### Settings Configuration (LittleLemon/settings.py)
+- INSTALLED_APPS includes: LittleLemonAPI, rest_framework, djoser, rest_framework.authtoken, django_filters
+- REST_FRAMEWORK settings for authentication, permissions, pagination
+- Logging configuration for concurrent-log-handler
+
+## Common Development Tasks
+
+### Adding a New Model Field
+1. Update model in `LittleLemonAPI/models.py`
+2. Update serializer in `LittleLemonAPI/serializers.py`
+3. Run: `pipenv run python manage.py makemigrations`
+4. Run: `pipenv run python manage.py migrate`
+5. Add tests in appropriate test file
+6. Update this README if field affects API behavior
+
+### Adding a New Endpoint
+1. Create/update ViewSet in `LittleLemonAPI/views.py`
+2. Register in `LittleLemonAPI/urls.py`
+3. Add endpoint constant to `tests/endpoints.py`
+4. Create test file in `tests/`
+5. Run tests to verify
+6. Update this README with endpoint documentation
+
+### Debugging Tips
+- Enable `DEBUG_JSON = True` in test classes to see response data
+- Use `pipenv run python manage.py shell` to query models interactively
+- Check logs for detailed operation tracking
+- Use `pytest -s` to see print() statements during tests

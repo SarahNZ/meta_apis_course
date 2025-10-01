@@ -1,0 +1,5 @@
+{
+  "projectName": "LittleLemon Restaurant API",
+  "description": "A Django REST Framework API for managing Little Lemon restaurant operations",
+  "mainBranch": "main"
+}
