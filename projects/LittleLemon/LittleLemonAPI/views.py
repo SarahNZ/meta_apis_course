@@ -145,14 +145,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
 
 class DeliveryCrewViewSet(UserGroupManagementMixin, viewsets.ViewSet):
     """
     ViewSet for managing users in the Delivery Crew group. 
-    Requires admin privileges
+    Requires staff privileges
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
     group_name = "Delivery Crew"
     updates_staff_status = False  # Delivery crew doesn't get staff status
     
@@ -182,9 +182,9 @@ class DeliveryCrewViewSet(UserGroupManagementMixin, viewsets.ViewSet):
 class ManagerViewSet(UserGroupManagementMixin, viewsets.ViewSet):
     """
     ViewSet for managing users in the Manager group. 
-    Requires admin privileges
+    Requires staff privileges
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
     group_name = "Manager"
     updates_staff_status = True  # Managers get staff status when added to group
     
