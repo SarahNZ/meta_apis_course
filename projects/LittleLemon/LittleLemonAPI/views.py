@@ -9,7 +9,7 @@ from rest_framework import filters, status, viewsets
 from .filters import MenuItemFilter
 from .models import Cart, Category, MenuItem, Order, OrderItem
 from .pagination import CustomPageNumberPagination
-from .permissions import IsStaffOrReadOnly
+from .permissions import IsStaffOrReadOnly, is_manager
 from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, OrderItemSerializer, OrderSerializer, UserSerializer
 
 logger = logging.getLogger('LittleLemonAPI')
@@ -186,7 +186,7 @@ class ManagerViewSet(UserGroupManagementMixin, viewsets.ViewSet):
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     group_name = "Manager"
-    updates_staff_status = True  # Managers get staff status
+    updates_staff_status = True  # Managers get staff status when added to group
     
     def list(self, request):
         """
@@ -396,7 +396,9 @@ class OrderViewSet(viewsets.ViewSet):
     Customers can place an order: POST /api/orders/ (include info in body)
     Customers can't modify their order. I.e. Update or delete it (out of scope)
     
-    Managers can view all orders: GET /api/orders/ if they have a manager's token. I.e. Authenticted and are staff
+    Managers (Manager group members) can view a list of all orders: GET /api/orders/
+    Managers can view a single order: GET /api/orders/{orderId}/
+    Managers can filter orders by user_id: GET /api/orders/?user_id={user_id}
     """
 
     permission_classes = [IsAuthenticated]
@@ -404,10 +406,10 @@ class OrderViewSet(viewsets.ViewSet):
     def list(self, request):
         """
         List all orders for the authenticated user.
-        Managers (staff users) can view all orders.
+        Managers (Manager group members) can view all orders.
         """
         # Managers can view all orders
-        if request.user.is_staff:
+        if is_manager(request.user):
             logger.info(f"Manager '{request.user.username}' viewing all orders")
             queryset = Order.objects.all()
         else:
@@ -420,12 +422,12 @@ class OrderViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """
         Retrieve a single order for the authenticated user.
-        Managers (staff users) can view any order.
+        Managers (Manager group members) can view any order.
         GET /api/orders/{orderId}/
         """
         try:
             # Managers can view any order
-            if request.user.is_staff:
+            if is_manager(request.user):
                 order = get_object_or_404(Order, pk=pk)
                 logger.info(f"Manager '{request.user.username}' viewed order {order.id}")
             else:

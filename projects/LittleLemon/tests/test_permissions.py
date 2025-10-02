@@ -201,8 +201,8 @@ class ManagersPermissionTests(BaseAPITestCase):
         self.authenticate_client(token)
         
         response = self.client.get(MANAGERS)
-        # Manager group members should still have access
-        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN])
+        # Manager group members should have access regardless of staff status
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_permission_malformed_tokens_and_headers(self):
         """Test permission system with various malformed authentication scenarios."""
