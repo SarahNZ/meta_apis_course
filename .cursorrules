@@ -332,3 +332,6 @@ pipenv run pytest -v --tb=short --maxfail=1
 - Use `pipenv run python manage.py shell` to query models interactively
 - Check logs for detailed operation tracking
 - Use `pytest -s` to see print() statements during tests
+
+### Test Creation Tips
+- Use helper methods where they exist to reduce code duplication and improve readability of tests
