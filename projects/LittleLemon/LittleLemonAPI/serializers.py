@@ -161,3 +161,33 @@ class OrderSerializer(serializers.ModelSerializer):
         # Convert UTC datetime to the active timezone (from settings.TIME_ZONE)
         local_date = timezone.localtime(obj.date)
         return local_date.strftime('%I:%M %p')
+
+
+class OrderAssignmentSerializer(serializers.ModelSerializer):
+    """
+    Serializer specifically for order assignment operations (PATCH).
+    Only allows updating delivery_crew field.
+    """
+    delivery_crew = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        required=True
+    )
+    
+    class Meta:
+        model = Order
+        fields = ["delivery_crew"]
+    
+    def validate_delivery_crew(self, value):
+        """
+        Validate that the delivery_crew user exists and is in the Delivery Crew group.
+        """
+        if not value:
+            raise serializers.ValidationError("Delivery crew user is required")
+        
+        # Check if user is in Delivery Crew group
+        if not value.groups.filter(name='Delivery Crew').exists():
+            raise serializers.ValidationError(
+                f"User '{value.username}' is not in the Delivery Crew group"
+            )
+        
+        return value

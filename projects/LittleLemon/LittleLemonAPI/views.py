@@ -9,8 +9,8 @@ from rest_framework import filters, status, viewsets
 from .filters import MenuItemFilter
 from .models import Cart, Category, MenuItem, Order, OrderItem
 from .pagination import CustomPageNumberPagination
-from .permissions import IsStaffOrReadOnly, is_manager
-from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, OrderItemSerializer, OrderSerializer, UserSerializer
+from .permissions import IsStaffOrReadOnly, IsStaffOnly, IsStaffOrManager, is_manager, is_delivery_crew
+from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, OrderItemSerializer, OrderSerializer, OrderAssignmentSerializer, UserSerializer
 
 logger = logging.getLogger('LittleLemonAPI')
 
@@ -136,7 +136,7 @@ class UserGroupManagementMixin:
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for authorized, staff users to view all users: GET /api/users/
+    ViewSet for authorized, staff users or Manager group members to view all users: GET /api/users/
 
     Note: User creation and token-based login handled by Djoser via /auth/ endpoint. I.e.
     - Create user: POST /auth/users (username and password in body, email optional)
@@ -145,14 +145,14 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
+    permission_classes = [IsAuthenticated, IsStaffOrManager]
 
 class DeliveryCrewViewSet(UserGroupManagementMixin, viewsets.ViewSet):
     """
     ViewSet for managing users in the Delivery Crew group. 
-    Requires staff privileges
+    Requires staff privileges or Manager group membership
     """
-    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
+    permission_classes = [IsAuthenticated, IsStaffOrManager]
     group_name = "Delivery Crew"
     updates_staff_status = False  # Delivery crew doesn't get staff status
     
@@ -184,7 +184,7 @@ class ManagerViewSet(UserGroupManagementMixin, viewsets.ViewSet):
     ViewSet for managing users in the Manager group. 
     Requires staff privileges
     """
-    permission_classes = [IsAuthenticated, IsStaffOrReadOnly]
+    permission_classes = [IsAuthenticated, IsStaffOnly]
     group_name = "Manager"
     updates_staff_status = True  # Managers get staff status when added to group
     
@@ -399,30 +399,42 @@ class OrderViewSet(viewsets.ViewSet):
     Managers (Manager group members) can view a list of all orders: GET /api/orders/
     Managers can view a single order: GET /api/orders/{orderId}/
     Managers can filter orders by user_id: GET /api/orders/?user_id={user_id}
+    Managers can assign orders to delivery crew: PATCH /api/orders/{orderId}/ (delivery_crew in body)
+    
+    Delivery crew members can view orders assigned to them: GET /api/orders/
+    Delivery crew members can view single assigned orders: GET /api/orders/{orderId}/
     """
 
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
         """
-        List all orders for the authenticated user.
+        List orders for the authenticated user.
         Managers (Manager group members) can view all orders.
+        Delivery crew members can view orders assigned to them.
+        Regular customers only see their own orders.
         """
         # Managers can view all orders
         if is_manager(request.user):
             logger.info(f"Manager '{request.user.username}' viewing all orders")
             queryset = Order.objects.all()
+        elif is_delivery_crew(request.user):
+            # Delivery crew can view orders assigned to them
+            logger.info(f"Delivery crew member '{request.user.username}' viewing assigned orders")
+            queryset = Order.objects.filter(delivery_crew=request.user)
         else:
             # Regular customers only see their own orders
-            queryset = Order.objects.filter(user = request.user)
+            queryset = Order.objects.filter(user=request.user)
         
-        serializer = OrderSerializer(queryset, many = True)
+        serializer = OrderSerializer(queryset, many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         """
         Retrieve a single order for the authenticated user.
         Managers (Manager group members) can view any order.
+        Delivery crew members can view orders assigned to them.
+        Regular customers only see their own orders.
         GET /api/orders/{orderId}/
         """
         try:
@@ -430,6 +442,10 @@ class OrderViewSet(viewsets.ViewSet):
             if is_manager(request.user):
                 order = get_object_or_404(Order, pk=pk)
                 logger.info(f"Manager '{request.user.username}' viewed order {order.id}")
+            elif is_delivery_crew(request.user):
+                # Delivery crew can view orders assigned to them
+                order = get_object_or_404(Order, delivery_crew=request.user, pk=pk)
+                logger.info(f"Delivery crew member '{request.user.username}' viewed order {order.id}")
             else:
                 # Regular customers only see their own orders
                 order = get_object_or_404(Order, user=request.user, pk=pk)
@@ -489,3 +505,49 @@ class OrderViewSet(viewsets.ViewSet):
         # Return the created order
         serializer = OrderSerializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, pk=None):
+        """
+        Assign a delivery crew member to an order (PATCH operation).
+        Only managers can assign orders to delivery crew members.
+        PATCH /api/orders/{orderId}/
+        """
+        # Check if user is a manager
+        if not is_manager(request.user):
+            logger.warning(f"User '{request.user.username}' attempted to assign order {pk} but is not a manager")
+            return Response(
+                {"detail": "Only managers can assign orders to delivery crew"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            # Get the order (managers can access any order)
+            order = get_object_or_404(Order, pk=pk)
+            
+            # Use the specialized assignment serializer
+            serializer = OrderAssignmentSerializer(order, data=request.data, partial=True)
+            
+            if not serializer.is_valid():
+                logger.warning(f"Manager '{request.user.username}' attempted invalid order assignment for order {pk}: {serializer.errors}")
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Save the assignment
+            updated_order = serializer.save()
+            
+            # Log the successful assignment
+            delivery_crew_name = updated_order.delivery_crew.username if updated_order.delivery_crew else "None"
+            logger.info(f"SUCCESS: Manager '{request.user.username}' assigned order {pk} to delivery crew member '{delivery_crew_name}'")
+            
+            # Return the updated order using the full OrderSerializer
+            response_serializer = OrderSerializer(updated_order)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+            
+        except ValueError:
+            logger.warning(f"Manager '{request.user.username}' attempted to assign order with invalid ID format: {pk}")
+            return Response(
+                {"detail": "Invalid order ID format"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"ERROR: Manager '{request.user.username}' failed to assign order {pk}: {str(e)}")
+            raise
