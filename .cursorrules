@@ -336,3 +336,6 @@ pipenv run pytest -v --tb=short --maxfail=1
 ### Test Creation Tips
 - Use helper methods where they exist to reduce code duplication and improve readability of tests
 - Don't create tests that are redundant. I.e. Tested elsewhere, as every test takes time to run and we want to test the important things, but also not create extra tests we don't need. We want a lean, efficient test suite.
+
+### Test Run Tips
+- Ask for permission before running tests
