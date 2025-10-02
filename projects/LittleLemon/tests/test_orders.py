@@ -431,3 +431,276 @@ class OrderTests(BaseAPITestCase):
         
         # Assert: Should return 401 Unauthorized
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    # === Order Immutability Tests (PUT, PATCH, DELETE) ===
+    
+    def test_owner_cannot_update_order_with_put(self):
+        """Test that the user who created the order cannot update it using PUT"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Prepare update data
+        update_data = {
+            "status": 1,
+            "total": 9999.99
+        }
+        
+        # Act: Try to update the order using PUT
+        response = self.client.put(f"{ORDERS}{order_id}/", update_data, format="json")
+        
+        # Assert: Should return 405 Method Not Allowed
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # Database-level check: Order should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 0)  # Status unchanged
+        self.assertNotEqual(order.total, update_data["total"])  # Total unchanged
+    
+    def test_owner_cannot_update_order_with_patch(self):
+        """Test that the user who created the order cannot partially update it using PATCH"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Prepare partial update data
+        update_data = {"status": 1}
+        
+        # Act: Try to update the order using PATCH
+        response = self.client.patch(f"{ORDERS}{order_id}/", update_data, format="json")
+        
+        # Assert: Should return 405 Method Not Allowed
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # Database-level check: Order status should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 0)
+    
+    def test_owner_cannot_delete_order(self):
+        """Test that the user who created the order cannot delete it"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Act: Try to delete the order
+        response = self.client.delete(f"{ORDERS}{order_id}/")
+        
+        # Assert: Should return 405 Method Not Allowed
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # Database-level check: Order should still exist
+        self.assertTrue(Order.objects.filter(pk=order_id).exists())
+    
+    def test_other_user_cannot_update_order_with_put(self):
+        """Test that a different authenticated user cannot update another user's order using PUT"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        original_total = order_data["total"]
+        
+        # Arrange: Create and authenticate user2
+        user2_client = self._create_and_authenticate_user2()
+        
+        # Arrange: Prepare update data
+        update_data = {
+            "status": 1,
+            "total": 9999.99
+        }
+        
+        # Act: User2 tries to update user1's order using PUT
+        response = user2_client.put(f"{ORDERS}{order_id}/", update_data, format="json")
+        
+        # Assert: Should return 405 Method Not Allowed (method not allowed takes precedence)
+        # Note: Even if the method were allowed, user2 shouldn't be able to access user1's order
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # Database-level check: Order should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.user, self.user1)
+        self.assertEqual(order.status, 0)
+        self.assertEqual(float(order.total), float(original_total))
+    
+    def test_other_user_cannot_update_order_with_patch(self):
+        """Test that a different authenticated user cannot partially update another user's order using PATCH"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create and authenticate user2
+        user2_client = self._create_and_authenticate_user2()
+        
+        # Arrange: Prepare partial update data
+        update_data = {"status": 1}
+        
+        # Act: User2 tries to update user1's order using PATCH
+        response = user2_client.patch(f"{ORDERS}{order_id}/", update_data, format="json")
+        
+        # Assert: Should return 405 Method Not Allowed
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # Database-level check: Order should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.user, self.user1)
+        self.assertEqual(order.status, 0)
+    
+    def test_other_user_cannot_delete_order(self):
+        """Test that a different authenticated user cannot delete another user's order"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create and authenticate user2
+        user2_client = self._create_and_authenticate_user2()
+        
+        # Act: User2 tries to delete user1's order
+        response = user2_client.delete(f"{ORDERS}{order_id}/")
+        
+        # Assert: Should return 405 Method Not Allowed
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # Database-level check: Order should still exist
+        self.assertTrue(Order.objects.filter(pk=order_id).exists())
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.user, self.user1)
+    
+    def test_anonymous_user_cannot_update_order_with_put(self):
+        """Test that unauthenticated users cannot update orders using PUT"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        original_total = order_data["total"]
+        
+        # Clear authentication
+        self._clear_authentication()
+        
+        # Arrange: Prepare update data
+        update_data = {
+            "status": 1,
+            "total": 9999.99
+        }
+        
+        # Act: Try to update order as unauthenticated user using PUT
+        response = self.client.put(f"{ORDERS}{order_id}/", update_data, format="json")
+        
+        # Assert: Should return 401 Unauthorized (auth check happens first)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        # Database-level check: Order should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 0)
+        self.assertEqual(float(order.total), float(original_total))
+    
+    def test_anonymous_user_cannot_update_order_with_patch(self):
+        """Test that unauthenticated users cannot partially update orders using PATCH"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Clear authentication
+        self._clear_authentication()
+        
+        # Arrange: Prepare partial update data
+        update_data = {"status": 1}
+        
+        # Act: Try to update order as unauthenticated user using PATCH
+        response = self.client.patch(f"{ORDERS}{order_id}/", update_data, format="json")
+        
+        # Assert: Should return 401 Unauthorized
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        # Database-level check: Order should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 0)
+    
+    def test_anonymous_user_cannot_delete_order(self):
+        """Test that unauthenticated users cannot delete orders"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Clear authentication
+        self._clear_authentication()
+        
+        # Act: Try to delete order as unauthenticated user
+        response = self.client.delete(f"{ORDERS}{order_id}/")
+        
+        # Assert: Should return 401 Unauthorized
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        # Database-level check: Order should still exist
+        self.assertTrue(Order.objects.filter(pk=order_id).exists())
+    
+    def test_cannot_update_orders_list_with_put(self):
+        """Test that PUT method is not allowed on the orders list endpoint"""
+        # Arrange: Create an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        self._place_order()
+        
+        # Arrange: Prepare update data
+        update_data = {"status": 1}
+        
+        # Act: Try to PUT to the orders list endpoint
+        response = self.client.put(ORDERS, update_data, format="json")
+        
+        # Assert: Should return 405 Method Not Allowed
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    def test_cannot_update_orders_list_with_patch(self):
+        """Test that PATCH method is not allowed on the orders list endpoint"""
+        # Arrange: Create an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        self._place_order()
+        
+        # Arrange: Prepare partial update data
+        update_data = {"status": 1}
+        
+        # Act: Try to PATCH the orders list endpoint
+        response = self.client.patch(ORDERS, update_data, format="json")
+        
+        # Assert: Should return 405 Method Not Allowed
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    def test_cannot_delete_orders_list(self):
+        """Test that DELETE method is not allowed on the orders list endpoint"""
+        # Arrange: Create an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        self._place_order()
+        
+        # Act: Try to DELETE the orders list endpoint
+        response = self.client.delete(ORDERS)
+        
+        # Assert: Should return 405 Method Not Allowed
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # Database-level check: Order should still exist
+        self.assertTrue(Order.objects.filter(user=self.user1).exists())
