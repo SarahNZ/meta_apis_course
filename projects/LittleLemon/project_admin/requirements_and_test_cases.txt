@@ -20,6 +20,6 @@ Customers can access previously added items in the cart ✅
 Customers can place orders ✅
 Customers can browse their own orders ✅
 
-Managers can assign orders to the delivery crew
-Delivery crew can access orders assigned to them
-Delivery crew can update an order as delivered
+Managers can assign orders to the delivery crew ✅
+Delivery crew can access orders assigned to them ✅
+Delivery crew can update an order as delivered ✅

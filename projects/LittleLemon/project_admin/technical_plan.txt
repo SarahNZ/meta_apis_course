@@ -216,47 +216,46 @@ CREATE TEST USERS AND GROUPS ✅
                 POST /api/orders - Creates a new order item for the current user,
                     gets current cart items from the cart endpoints and adds those items to the 
                     items in the order items table. Then deletes all items from the cart for this user
-                - Check valid/invalid & auth/not auth actions - TODO
+                - Check valid/invalid & auth/not auth actions ✅
             - Assume delivery crew can place orders
             - Check unauthenticated users can't place an order ✅
             -Customers can view a list of their orders (at any stage and see the status and total price) ✅
                 I.e. GET /api/orders with Customer token - returns all orders with order items created by the user
             - Check unathorized users can't see a list of customers' order, and customer can't see other customers orders ✅
-            - Customer can view details of a single order 
+            - Customer can view details of a single order ✅
                 GET /api/orders/{orderId} - displays all items for this order id. 
-                - displays an error if the order id doesn't belong to the current user 
+                - displays an error if the order id doesn't belong to the current user  ✅
         
         * MANAGER
-            - Manager can view all orders for all users
+            - Manager can view all orders for all users ✅
                 GET /api/orders if have manager token
-            - Manager can view/filter orders for a single user
-            - Manager can view a single order
+            - Manager can view/filter orders for a single user ✅
+            - Manager can view a single order ✅
                 GET /api/orders/{orderId}
-            - Manager can assign order to a delivery person and/or update order status to 0 or 1
+            - Manager can assign order to a delivery person and/or update order status to 0 or 1 ✅
                 Note: status = 0 means order is out for delivery
                 If a delivery person is assigned to this order, and status = 1 means order has been delivered
                 PUT, PATCH /api/orders/{orderId} if have manager token)
                 - Check that Manager can't assign order to customer or invalid delivery person/not exists
-            - Manager can delete an order  
-                DELETE /api/orders/{orderId}
-            - Check that unauthenticated users and non-Manager users (delivery crew/customers can't orders, including their own and other users)
-            - User with delivery crew role can change order status from pending to delivered.
-                - Check Customer or unauthorized person can't change the status of their order
+            - Manager can delete an order DELETE /api/orders/{orderId} ✅
+            - Check that unauthenticated users and non-Manager users (delivery crew/customers can't update orders, including their own and other users) ✅
+            - User with delivery crew role can change order status from pending to delivered. ✅
+                - Check Customer or unauthorized person can't change the status of their order ✅
             - Manager can filter orders by status (to see which have been delivered, and which have not been delivered yet)
                 I.e. /api/orders?status=delivered or /api/orders?status=pending with manager token. 
                 - Check auth/unauth & group valid/invalid
-            - Assume Manager can also mark orders as delivered (check this assumption)
+            - Not sure if Manager can mark order as delivered or not (check) ✅
 
         * DELIVERY CREW
-            - Delivery crew can view all orders assigned to the delivery crew
+            - Delivery crew can view all orders assigned to the delivery crew ✅
                 I.e. GET /api/orders with delivery person token
-            - Check that delivery crew can't view orders that aren't assigned to the DC
-            - DC can view a single order assigned to the delivery crew
+            - Check that delivery crew can't view orders that aren't assigned to the DC ✅
+            - DC can view a single order assigned to the delivery crew ✅
                 GET /api/orders/{orderId}
-            - Check that DC can't view a single order that's not assigned to the DC
-            - DC can update the status of an order as delivered (1). I.e.
+            - Check that DC can't view a single order that's not assigned to the DC ✅
+            - DC can update the status of an order as delivered (1) I.e.
                 PATCH /api/orders/{orderId}
-            - DC can't update any other fields of an order
-            - DC can't update the status of an order not assigned to the DC
+            - DC can't update any other fields of an order ✅
+            - DC can't update the status of an order not assigned to the DC ✅
 
-# ENSURE BUSINESS REQUIREMENTS HAVE BEEN MET  
+# ENSURE BUSINESS REQUIREMENTS HAVE BEEN MET  ✅
