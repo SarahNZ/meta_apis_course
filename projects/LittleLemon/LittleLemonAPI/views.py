@@ -395,26 +395,44 @@ class OrderViewSet(viewsets.ViewSet):
     Customers can view a single order: GET /api/orders/{orderId}/
     Customers can place an order: POST /api/orders/ (include info in body)
     Customers can't modify their order. I.e. Update or delete it (out of scope)
+    
+    Managers can view all orders: GET /api/orders/ if they have a manager's token. I.e. Authenticted and are staff
     """
 
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
         """
-        List all orders for the authenticated user
+        List all orders for the authenticated user.
+        Managers (staff users) can view all orders.
         """
-        queryset = Order.objects.filter(user = request.user)
+        # Managers can view all orders
+        if request.user.is_staff:
+            logger.info(f"Manager '{request.user.username}' viewing all orders")
+            queryset = Order.objects.all()
+        else:
+            # Regular customers only see their own orders
+            queryset = Order.objects.filter(user = request.user)
+        
         serializer = OrderSerializer(queryset, many = True)
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         """
-        Retrieve a single order for the authenticated user
+        Retrieve a single order for the authenticated user.
+        Managers (staff users) can view any order.
         GET /api/orders/{orderId}/
         """
         try:
-            order = get_object_or_404(Order, user=request.user, pk=pk)
-            logger.info(f"User '{request.user.username}' viewed order {order.id}")
+            # Managers can view any order
+            if request.user.is_staff:
+                order = get_object_or_404(Order, pk=pk)
+                logger.info(f"Manager '{request.user.username}' viewed order {order.id}")
+            else:
+                # Regular customers only see their own orders
+                order = get_object_or_404(Order, user=request.user, pk=pk)
+                logger.info(f"User '{request.user.username}' viewed order {order.id}")
+            
             serializer = OrderSerializer(order)
             return Response(serializer.data)
         except ValueError:
