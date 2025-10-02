@@ -126,6 +126,15 @@ class OrderTests(BaseAPITestCase):
         user2_client.credentials(HTTP_AUTHORIZATION=f'Token {user2_token}')
         return user2_client
     
+    def _create_and_authenticate_manager(self):
+        """Helper method to create and authenticate a manager user"""
+        self.manager_user = User.objects.create_user(username="manager", password="pass1234")
+        self.add_user_to_manager_group(self.manager_user)
+        manager_client = APIClient()
+        manager_token = self.get_auth_token(username="manager", password="pass1234")
+        manager_client.credentials(HTTP_AUTHORIZATION=f'Token {manager_token}')
+        return manager_client
+    
     # === Basic Order Tests ===
     
     def test_view_empty_list_of_orders(self):
@@ -288,6 +297,123 @@ class OrderTests(BaseAPITestCase):
         # Database-level check: User1's order exists, but user2 has no orders
         self.assertEqual(Order.objects.filter(user=self.user1).count(), 1)
         self.assertEqual(Order.objects.filter(user=self.user2).count(), 0)
+
+    # === Manager Permission Tests ===
+    
+    def test_manager_can_view_all_orders(self):
+        """Test that managers can view all orders from all users"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        user1_order_response = self._place_order()
+        user1_order_data = self._verify_order_created(user1_order_response)
+        user1_order_id = user1_order_data["id"]
+        
+        # Arrange: User2 creates an order (must use direct API calls, not helper methods)
+        user2_client = self._create_and_authenticate_user2()
+        menu_item2 = get_object_or_404(MenuItem, title="Apple Pie")
+        cart_data = {"menuitem": menu_item2.id, "quantity": 1}
+        user2_client.post(CART, cart_data, format="json")
+        user2_order_response = user2_client.post(ORDERS, format="json")
+        user2_order_data = self._verify_order_created(user2_order_response)
+        user2_order_id = user2_order_data["id"]
+        
+        # Arrange: Create and authenticate manager
+        manager_client = self._create_and_authenticate_manager()
+        
+        # Act: Manager views all orders
+        response = manager_client.get(ORDERS)
+        
+        # Assert: Manager sees all orders from all users
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        
+        # Assert: Both orders are present in the response
+        order_ids = [order["id"] for order in response.data]
+        self.assertIn(user1_order_id, order_ids)
+        self.assertIn(user2_order_id, order_ids)
+        
+        # Database-level check: Verify orders belong to different users
+        orders = Order.objects.all()
+        self.assertEqual(orders.count(), 2)
+        order_users = [order.user for order in orders]
+        self.assertIn(self.user1, order_users)
+        self.assertIn(self.user2, order_users)
+    
+    def test_manager_can_retrieve_any_users_order(self):
+        """Test that manager can retrieve a specific order from any user"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 2)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        expected_total = order_data["total"]
+        
+        # Arrange: Create and authenticate manager
+        manager_client = self._create_and_authenticate_manager()
+        
+        # Act: Manager retrieves user1's order
+        response = manager_client.get(f"{ORDERS}{order_id}/")
+        
+        # Assert: Manager can successfully retrieve the order
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], order_id)
+        self._validate_order_response_fields(response.data, self.user1)
+        self.assertEqual(float(response.data["total"]), float(expected_total))
+        
+        # Assert: Order items are included
+        self.assertEqual(len(response.data["order_items"]), 1)
+        self._validate_order_item(response.data["order_items"][0], menu_item, 2)
+        
+        # Database-level check: Order belongs to user1, not manager
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.user, self.user1)
+        self.assertNotEqual(order.user, self.manager_user)
+    
+    def test_manager_can_view_orders_with_multiple_items(self):
+        """Test that manager can view complex orders with multiple items"""
+        # Arrange: User1 creates an order with multiple items
+        margherita = get_object_or_404(MenuItem, title="Margherita")
+        pepperoni = get_object_or_404(MenuItem, title="Pepperoni")
+        apple_pie = get_object_or_404(MenuItem, title="Apple Pie")
+        
+        items = [
+            {'menuitem': margherita, 'quantity': 2},
+            {'menuitem': pepperoni, 'quantity': 1},
+            {'menuitem': apple_pie, 'quantity': 3}
+        ]
+        self._add_multiple_items_to_cart(items)
+        
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create and authenticate manager
+        manager_client = self._create_and_authenticate_manager()
+        
+        # Act: Manager retrieves the order
+        response = manager_client.get(f"{ORDERS}{order_id}/")
+        
+        # Assert: Manager can view all order details
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], order_id)
+        self.assertEqual(len(response.data["order_items"]), 3)
+        
+        # Assert: All order items are present with correct details
+        order_items = response.data["order_items"]
+        margherita_item = next((item for item in order_items if item["menuitem"] == margherita.id), None)
+        pepperoni_item = next((item for item in order_items if item["menuitem"] == pepperoni.id), None)
+        apple_pie_item = next((item for item in order_items if item["menuitem"] == apple_pie.id), None)
+        
+        self.assertIsNotNone(margherita_item)
+        self._validate_order_item(margherita_item, margherita, 2)
+        
+        self.assertIsNotNone(pepperoni_item)
+        self._validate_order_item(pepperoni_item, pepperoni, 1)
+        
+        self.assertIsNotNone(apple_pie_item)
+        self._validate_order_item(apple_pie_item, apple_pie, 3)
 
     # === Order Workflow Integration Tests ===
     
