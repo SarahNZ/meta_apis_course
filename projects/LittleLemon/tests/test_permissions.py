@@ -1,5 +1,6 @@
-from base_test import BaseAPITestCase
-from endpoints import MANAGERS
+from rest_framework import status
+from tests.base_test import BaseAPITestCase
+from tests.endpoints import CATEGORIES, MANAGERS, MENU_ITEMS
 
 class ManagersPermissionTests(BaseAPITestCase):
     
@@ -179,8 +180,7 @@ class ManagersPermissionTests(BaseAPITestCase):
 
     def test_permission_boundary_conditions(self):
         """Test permission system edge cases and boundary conditions."""
-        from rest_framework import status
-        from .endpoints import CATEGORIES, MENU_ITEMS
+
         
         # Test 1: User with staff status but no group membership
         self.give_user_staff_status(self.user1)
