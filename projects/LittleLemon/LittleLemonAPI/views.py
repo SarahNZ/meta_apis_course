@@ -10,7 +10,7 @@ from .filters import MenuItemFilter
 from .models import Cart, Category, MenuItem, Order, OrderItem
 from .pagination import CustomPageNumberPagination
 from .permissions import IsStaffOrReadOnly, IsStaffOnly, IsStaffOrManager, is_manager, is_delivery_crew
-from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, OrderItemSerializer, OrderSerializer, OrderAssignmentSerializer, UserSerializer
+from .serializers import CartSerializer, CategorySerializer, MenuItemSerializer, OrderItemSerializer, OrderSerializer, OrderUpdateSerializer, UserSerializer
 
 logger = logging.getLogger('LittleLemonAPI')
 
@@ -400,9 +400,11 @@ class OrderViewSet(viewsets.ViewSet):
     Managers can view a single order: GET /api/orders/{orderId}/
     Managers can filter orders by user_id: GET /api/orders/?user_id={user_id}
     Managers can assign orders to delivery crew: PATCH /api/orders/{orderId}/ (delivery_crew in body)
+    Managers can update order status to 1 (delivered): PATCH /api/orders/{orderId}/ (status in body) - only if order is assigned
     
     Delivery crew members can view orders assigned to them: GET /api/orders/
     Delivery crew members can view single assigned orders: GET /api/orders/{orderId}/
+    Delivery crew members can update order status to 1 (delivered): PATCH /api/orders/{orderId}/ (status in body) - only for orders assigned to them
     """
 
     permission_classes = [IsAuthenticated]
@@ -508,46 +510,102 @@ class OrderViewSet(viewsets.ViewSet):
 
     def partial_update(self, request, pk=None):
         """
-        Assign a delivery crew member to an order (PATCH operation).
-        Only managers can assign orders to delivery crew members.
+        Update an order (PATCH operation).
+        
+        Managers can:
+        - Assign orders to delivery crew members
+        - Update order status to 1 (delivered) if order is already assigned
+        
+        Delivery crew members can:
+        - Update order status to 1 (delivered) if the order is assigned to them
+        
         PATCH /api/orders/{orderId}/
         """
-        # Check if user is a manager
-        if not is_manager(request.user):
-            logger.warning(f"User '{request.user.username}' attempted to assign order {pk} but is not a manager")
-            return Response(
-                {"detail": "Only managers can assign orders to delivery crew"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         try:
-            # Get the order (managers can access any order)
+            # Get the order
             order = get_object_or_404(Order, pk=pk)
             
-            # Use the specialized assignment serializer
-            serializer = OrderAssignmentSerializer(order, data=request.data, partial=True)
+            # Determine what fields are being updated
+            has_delivery_crew = 'delivery_crew' in request.data
+            has_status = 'status' in request.data
+            
+            # Check permissions based on what's being updated
+            if has_delivery_crew:
+                # Only managers can assign delivery crew
+                if not is_manager(request.user):
+                    logger.warning(f"User '{request.user.username}' attempted to assign order {pk} but is not a manager")
+                    return Response(
+                        {"detail": "Only managers can assign orders to delivery crew"},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            
+            if has_status:
+                # Check if user can update status
+                if is_manager(request.user):
+                    # Managers can update status if order is assigned to someone
+                    # If delivery_crew is being updated in the same request, check the new value
+                    if has_delivery_crew:
+                        # If both fields are being updated, the order will be assigned by the delivery_crew update
+                        # So we allow the status update
+                        pass
+                    elif not order.delivery_crew:
+                        logger.warning(f"Manager '{request.user.username}' attempted to update status for unassigned order {pk}")
+                        return Response(
+                            {"detail": "Cannot update status for unassigned order"},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                elif is_delivery_crew(request.user):
+                    # Delivery crew can only update status if order is assigned to them
+                    if order.delivery_crew != request.user:
+                        logger.warning(f"Delivery crew member '{request.user.username}' attempted to update status for order {pk} not assigned to them")
+                        return Response(
+                            {"detail": "You can only update status for orders assigned to you"},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                else:
+                    # Regular users cannot update orders
+                    logger.warning(f"User '{request.user.username}' attempted to update order {pk} but is not a manager or delivery crew member")
+                    return Response(
+                        {"detail": "Only managers and delivery crew members can update orders"},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            
+            # If no delivery_crew or status fields, deny the request
+            if not has_delivery_crew and not has_status:
+                logger.warning(f"User '{request.user.username}' attempted to update order {pk} with invalid fields")
+                return Response(
+                    {"detail": "Only delivery_crew and status fields can be updated"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Use the general update serializer
+            serializer = OrderUpdateSerializer(order, data=request.data, partial=True)
             
             if not serializer.is_valid():
-                logger.warning(f"Manager '{request.user.username}' attempted invalid order assignment for order {pk}: {serializer.errors}")
+                logger.warning(f"User '{request.user.username}' attempted invalid order update for order {pk}: {serializer.errors}")
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
-            # Save the assignment
+            # Save the update
             updated_order = serializer.save()
             
-            # Log the successful assignment
-            delivery_crew_name = updated_order.delivery_crew.username if updated_order.delivery_crew else "None"
-            logger.info(f"SUCCESS: Manager '{request.user.username}' assigned order {pk} to delivery crew member '{delivery_crew_name}'")
+            # Log the successful update
+            if has_delivery_crew:
+                delivery_crew_name = updated_order.delivery_crew.username if updated_order.delivery_crew else "None"
+                logger.info(f"SUCCESS: Manager '{request.user.username}' assigned order {pk} to delivery crew member '{delivery_crew_name}'")
+            
+            if has_status:
+                logger.info(f"SUCCESS: User '{request.user.username}' updated order {pk} status to {updated_order.status}")
             
             # Return the updated order using the full OrderSerializer
             response_serializer = OrderSerializer(updated_order)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
             
         except ValueError:
-            logger.warning(f"Manager '{request.user.username}' attempted to assign order with invalid ID format: {pk}")
+            logger.warning(f"User '{request.user.username}' attempted to update order with invalid ID format: {pk}")
             return Response(
                 {"detail": "Invalid order ID format"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
-            logger.error(f"ERROR: Manager '{request.user.username}' failed to assign order {pk}: {str(e)}")
+            logger.error(f"ERROR: User '{request.user.username}' failed to update order {pk}: {str(e)}")
             raise

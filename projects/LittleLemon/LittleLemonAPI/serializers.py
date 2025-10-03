@@ -163,31 +163,40 @@ class OrderSerializer(serializers.ModelSerializer):
         return local_date.strftime('%I:%M %p')
 
 
-class OrderAssignmentSerializer(serializers.ModelSerializer):
+class OrderUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer specifically for order assignment operations (PATCH).
-    Only allows updating delivery_crew field.
+    Serializer for general order updates (PATCH).
+    Allows updating both delivery_crew and status fields.
     """
     delivery_crew = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
-        required=True
+        required=False,
+        allow_null=True
     )
+    status = serializers.IntegerField(required=False)
     
     class Meta:
         model = Order
-        fields = ["delivery_crew"]
+        fields = ["delivery_crew", "status"]
     
     def validate_delivery_crew(self, value):
         """
         Validate that the delivery_crew user exists and is in the Delivery Crew group.
         """
-        if not value:
-            raise serializers.ValidationError("Delivery crew user is required")
-        
-        # Check if user is in Delivery Crew group
-        if not value.groups.filter(name='Delivery Crew').exists():
+        if value is not None:
+            # Check if user is in Delivery Crew group
+            if not value.groups.filter(name='Delivery Crew').exists():
+                raise serializers.ValidationError(
+                    f"User '{value.username}' is not in the Delivery Crew group"
+                )
+        return value
+    
+    def validate_status(self, value):
+        """
+        Validate that the status can only be set to 1 (delivered).
+        """
+        if value is not None and value != 1:
             raise serializers.ValidationError(
-                f"User '{value.username}' is not in the Delivery Crew group"
+                "Status can only be set to 1 (delivered)"
             )
-        
         return value

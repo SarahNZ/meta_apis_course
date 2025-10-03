@@ -601,9 +601,9 @@ class OrderTests(BaseAPITestCase):
         # Act: Try to update the order using PATCH
         response = self.client.patch(f"{ORDERS}{order_id}/", update_data, format="json")
         
-        # Assert: Should return 403 Forbidden (only managers can assign orders)
+        # Assert: Should return 403 Forbidden (only managers and delivery crew can update orders)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn("Only managers can assign orders to delivery crew", response.data["detail"])
+        self.assertIn("Only managers and delivery crew members can update orders", response.data["detail"])
         
         # Database-level check: Order status should remain unchanged
         order = Order.objects.get(pk=order_id)
@@ -677,9 +677,9 @@ class OrderTests(BaseAPITestCase):
         # Act: User2 tries to update user1's order using PATCH
         response = user2_client.patch(f"{ORDERS}{order_id}/", update_data, format="json")
         
-        # Assert: Should return 403 Forbidden (only managers can assign orders)
+        # Assert: Should return 403 Forbidden (only managers and delivery crew can update orders)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn("Only managers can assign orders to delivery crew", response.data["detail"])
+        self.assertIn("Only managers and delivery crew members can update orders", response.data["detail"])
         
         # Database-level check: Order should remain unchanged
         order = Order.objects.get(pk=order_id)
@@ -753,6 +753,345 @@ class OrderTests(BaseAPITestCase):
         # Database-level check: Order should not be assigned
         order = Order.objects.get(pk=order_id)
         self.assertIsNone(order.delivery_crew)
+    
+    def test_manager_can_update_status_of_assigned_order(self):
+        """Test that a manager can update the status of an order that is assigned to a delivery crew member"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create a delivery crew member and assign the order
+        delivery_crew_user = User.objects.create_user(
+            username="delivery_crew_user",
+            password="testpass123"
+        )
+        self.add_user_to_delivery_crew_group(delivery_crew_user)
+        
+        # Arrange: Make user1 a manager and assign the order
+        self.add_user_to_manager_group(self.user1)
+        assignment_data = {"delivery_crew": delivery_crew_user.id}
+        self.client.patch(f"{ORDERS}{order_id}/", assignment_data, format="json")
+        
+        # Arrange: Prepare status update data
+        status_data = {"status": 1}
+        
+        # Act: Manager tries to update order status
+        response = self.client.patch(f"{ORDERS}{order_id}/", status_data, format="json")
+        
+        # Assert: Should return 200 OK
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Assert: Order status should be updated
+        self.assertEqual(response.data["status"], 1)
+        
+        # Database-level check: Order status should be updated
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 1)
+    
+    def test_manager_cannot_update_status_of_unassigned_order(self):
+        """Test that a manager cannot update the status of an order that is not assigned to anyone"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Make user1 a manager
+        self.add_user_to_manager_group(self.user1)
+        
+        # Arrange: Prepare status update data
+        status_data = {"status": 1}
+        
+        # Act: Manager tries to update order status
+        response = self.client.patch(f"{ORDERS}{order_id}/", status_data, format="json")
+        
+        # Assert: Should return 400 Bad Request
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Cannot update status for unassigned order", response.data["detail"])
+        
+        # Database-level check: Order status should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 0)
+    
+    def test_delivery_crew_can_update_status_of_assigned_order(self):
+        """Test that a delivery crew member can update the status of an order assigned to them"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create a delivery crew member
+        delivery_crew_user = User.objects.create_user(
+            username="delivery_crew_user",
+            password="testpass123"
+        )
+        self.add_user_to_delivery_crew_group(delivery_crew_user)
+        
+        # Arrange: Make user1 a manager and assign the order to delivery crew
+        self.add_user_to_manager_group(self.user1)
+        assignment_data = {"delivery_crew": delivery_crew_user.id}
+        self.client.patch(f"{ORDERS}{order_id}/", assignment_data, format="json")
+        
+        # Arrange: Authenticate as delivery crew member
+        delivery_crew_token = self.get_auth_token("delivery_crew_user", "testpass123")
+        self.authenticate_client(delivery_crew_token)
+        
+        # Arrange: Prepare status update data
+        status_data = {"status": 1}
+        
+        # Act: Delivery crew member tries to update order status
+        response = self.client.patch(f"{ORDERS}{order_id}/", status_data, format="json")
+        
+        # Assert: Should return 200 OK
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Assert: Order status should be updated
+        self.assertEqual(response.data["status"], 1)
+        
+        # Database-level check: Order status should be updated
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 1)
+    
+    def test_delivery_crew_cannot_update_status_of_unassigned_order(self):
+        """Test that a delivery crew member cannot update the status of an order not assigned to them"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create a delivery crew member
+        delivery_crew_user = User.objects.create_user(
+            username="delivery_crew_user",
+            password="testpass123"
+        )
+        self.add_user_to_delivery_crew_group(delivery_crew_user)
+        
+        # Arrange: Authenticate as delivery crew member
+        delivery_crew_token = self.get_auth_token("delivery_crew_user", "testpass123")
+        self.authenticate_client(delivery_crew_token)
+        
+        # Arrange: Prepare status update data
+        status_data = {"status": 1}
+        
+        # Act: Delivery crew member tries to update order status
+        response = self.client.patch(f"{ORDERS}{order_id}/", status_data, format="json")
+        
+        # Assert: Should return 403 Forbidden
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("You can only update status for orders assigned to you", response.data["detail"])
+        
+        # Database-level check: Order status should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 0)
+    
+    def test_delivery_crew_cannot_update_status_of_order_assigned_to_other(self):
+        """Test that a delivery crew member cannot update the status of an order assigned to another delivery crew member"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create two delivery crew members
+        delivery_crew_user1 = User.objects.create_user(
+            username="delivery_crew_user1",
+            password="testpass123"
+        )
+        delivery_crew_user2 = User.objects.create_user(
+            username="delivery_crew_user2",
+            password="testpass123"
+        )
+        self.add_user_to_delivery_crew_group(delivery_crew_user1)
+        self.add_user_to_delivery_crew_group(delivery_crew_user2)
+        
+        # Arrange: Make user1 a manager and assign the order to delivery_crew_user1
+        self.add_user_to_manager_group(self.user1)
+        assignment_data = {"delivery_crew": delivery_crew_user1.id}
+        self.client.patch(f"{ORDERS}{order_id}/", assignment_data, format="json")
+        
+        # Arrange: Authenticate as delivery_crew_user2
+        delivery_crew2_token = self.get_auth_token("delivery_crew_user2", "testpass123")
+        self.authenticate_client(delivery_crew2_token)
+        
+        # Arrange: Prepare status update data
+        status_data = {"status": 1}
+        
+        # Act: delivery_crew_user2 tries to update order status
+        response = self.client.patch(f"{ORDERS}{order_id}/", status_data, format="json")
+        
+        # Assert: Should return 403 Forbidden
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("You can only update status for orders assigned to you", response.data["detail"])
+        
+        # Database-level check: Order status should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 0)
+    
+    def test_invalid_status_value_rejected(self):
+        """Test that invalid status values are rejected"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create a delivery crew member and assign the order
+        delivery_crew_user = User.objects.create_user(
+            username="delivery_crew_user",
+            password="testpass123"
+        )
+        self.add_user_to_delivery_crew_group(delivery_crew_user)
+        
+        # Arrange: Make user1 a manager and assign the order
+        self.add_user_to_manager_group(self.user1)
+        assignment_data = {"delivery_crew": delivery_crew_user.id}
+        self.client.patch(f"{ORDERS}{order_id}/", assignment_data, format="json")
+        
+        # Arrange: Prepare invalid status update data
+        invalid_status_data = {"status": 2}  # Invalid status
+        
+        # Act: Manager tries to update order status with invalid value
+        response = self.client.patch(f"{ORDERS}{order_id}/", invalid_status_data, format="json")
+        
+        # Assert: Should return 400 Bad Request
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Status can only be set to 1 (delivered)", str(response.data["status"]))
+        
+        # Database-level check: Order status should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 0)
+    
+    def test_delivery_crew_cannot_assign_orders(self):
+        """Test that a delivery crew member cannot assign orders to other delivery crew members"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create two delivery crew members
+        delivery_crew_user1 = User.objects.create_user(
+            username="delivery_crew_user1",
+            password="testpass123"
+        )
+        delivery_crew_user2 = User.objects.create_user(
+            username="delivery_crew_user2",
+            password="testpass123"
+        )
+        self.add_user_to_delivery_crew_group(delivery_crew_user1)
+        self.add_user_to_delivery_crew_group(delivery_crew_user2)
+        
+        # Arrange: Authenticate as delivery_crew_user1
+        delivery_crew1_token = self.get_auth_token("delivery_crew_user1", "testpass123")
+        self.authenticate_client(delivery_crew1_token)
+        
+        # Arrange: Prepare assignment data (trying to assign order to delivery_crew_user2)
+        assignment_data = {"delivery_crew": delivery_crew_user2.id}
+        
+        # Act: delivery_crew_user1 tries to assign order to delivery_crew_user2
+        response = self.client.patch(f"{ORDERS}{order_id}/", assignment_data, format="json")
+        
+        # Assert: Should return 403 Forbidden
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("Only managers can assign orders to delivery crew", response.data["detail"])
+        
+        # Database-level check: Order should not be assigned
+        order = Order.objects.get(pk=order_id)
+        self.assertIsNone(order.delivery_crew)
+    
+    def test_delivery_crew_cannot_update_multiple_fields(self):
+        """Test that a delivery crew member cannot update both delivery_crew and status fields"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create a delivery crew member and assign the order to them
+        delivery_crew_user = User.objects.create_user(
+            username="delivery_crew_user",
+            password="testpass123"
+        )
+        self.add_user_to_delivery_crew_group(delivery_crew_user)
+        
+        # Arrange: Make user1 a manager and assign the order
+        self.add_user_to_manager_group(self.user1)
+        assignment_data = {"delivery_crew": delivery_crew_user.id}
+        self.client.patch(f"{ORDERS}{order_id}/", assignment_data, format="json")
+        
+        # Arrange: Authenticate as delivery crew member
+        delivery_crew_token = self.get_auth_token("delivery_crew_user", "testpass123")
+        self.authenticate_client(delivery_crew_token)
+        
+        # Arrange: Prepare update data with both delivery_crew and status
+        update_data = {
+            "delivery_crew": delivery_crew_user.id,  # This should be rejected
+            "status": 1
+        }
+        
+        # Act: Delivery crew member tries to update both fields
+        response = self.client.patch(f"{ORDERS}{order_id}/", update_data, format="json")
+        
+        # Assert: Should return 403 Forbidden (because delivery_crew field is not allowed)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("Only managers can assign orders to delivery crew", response.data["detail"])
+        
+        # Database-level check: Order should remain unchanged
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.status, 0)
+    
+    def test_manager_can_assign_and_update_status_in_one_request(self):
+        """Test that a manager can assign an order to delivery crew and update status in one PATCH request"""
+        # Arrange: User1 creates an order
+        menu_item = get_object_or_404(MenuItem, title="Margherita")
+        self._add_item_to_cart(menu_item, 1)
+        order_response = self._place_order()
+        order_data = self._verify_order_created(order_response)
+        order_id = order_data["id"]
+        
+        # Arrange: Create a delivery crew member
+        delivery_crew_user = User.objects.create_user(
+            username="delivery_crew_user",
+            password="testpass123"
+        )
+        self.add_user_to_delivery_crew_group(delivery_crew_user)
+        
+        # Arrange: Make user1 a manager
+        self.add_user_to_manager_group(self.user1)
+        
+        # Arrange: Prepare combined assignment and status update data
+        combined_data = {
+            "delivery_crew": delivery_crew_user.id,
+            "status": 1
+        }
+        
+        # Act: Manager tries to assign order and update status in one request
+        response = self.client.patch(f"{ORDERS}{order_id}/", combined_data, format="json")
+        
+        # Assert: Should return 200 OK
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Assert: Order should be assigned and status updated
+        self.assertEqual(response.data["delivery_crew"], delivery_crew_user.id)
+        self.assertEqual(response.data["delivery_crew_name"], "delivery_crew_user")
+        self.assertEqual(response.data["status"], 1)
+        
+        # Database-level check: Order should be assigned and status updated
+        order = Order.objects.get(pk=order_id)
+        self.assertEqual(order.delivery_crew, delivery_crew_user)
+        self.assertEqual(order.status, 1)
     
     def test_other_user_cannot_delete_order(self):
         """Test that a different authenticated user cannot delete another user's order"""
