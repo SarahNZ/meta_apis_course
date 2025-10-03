@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import filters, status, viewsets
-from .filters import MenuItemFilter
+from .filters import MenuItemFilter, OrderFilter
 from .models import Cart, Category, MenuItem, Order, OrderItem
 from .pagination import CustomPageNumberPagination
 from .permissions import IsStaffOrReadOnly, IsStaffOnly, IsStaffOrManager, is_manager, is_delivery_crew
@@ -399,6 +399,7 @@ class OrderViewSet(viewsets.ViewSet):
     Managers (Manager group members) can view a list of all orders: GET /api/orders/
     Managers can view a single order: GET /api/orders/{orderId}/
     Managers can filter orders by user_id: GET /api/orders/?user_id={user_id}
+    Managers can filter orders by status: GET /api/orders/?status=pending or GET /api/orders/?status=delivered
     Managers can assign orders to delivery crew: PATCH /api/orders/{orderId}/ (delivery_crew in body)
     Managers can update order status to 1 (delivered): PATCH /api/orders/{orderId}/ (status in body) - only if order is assigned
     
@@ -408,6 +409,8 @@ class OrderViewSet(viewsets.ViewSet):
     """
 
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = OrderFilter
 
     def list(self, request):
         """
@@ -427,6 +430,16 @@ class OrderViewSet(viewsets.ViewSet):
         else:
             # Regular customers only see their own orders
             queryset = Order.objects.filter(user=request.user)
+        
+        # Apply filtering if user is a manager
+        if is_manager(request.user):
+            filterset = self.filterset_class(request.GET, queryset=queryset, request=request)
+            if filterset.is_valid():
+                queryset = filterset.qs
+                # Log filtering activity
+                status_filter = request.GET.get('status')
+                if status_filter:
+                    logger.info(f"Manager '{request.user.username}' filtered orders by status: {status_filter}")
         
         serializer = OrderSerializer(queryset, many=True)
         return Response(serializer.data)
